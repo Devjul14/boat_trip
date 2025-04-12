@@ -8,6 +8,7 @@ use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\UserResource\Pages;
@@ -40,13 +41,15 @@ class UserResource extends Resource
                     ->dehydrated(fn ($state) => filled($state))
                     ->required(fn (string $context): bool => $context === 'create'),
                 Forms\Components\Select::make('role')
+                    ->label('Role')
                     ->required()
-                    ->options([
-                        'admin' => 'Admin',
-                        'manager' => 'Manager',
-                        'boatman' => 'Boatman',
-                    ])
-                    ->default('boatman'),
+                    ->options(function () {
+                        return Role::all()->pluck('name', 'name');
+                    })
+                    ->default('boatman')
+                    ->afterStateUpdated(function (string $state, callable $set) {
+                        $set('role', $state);
+                    })
             ]);
     }
 
@@ -61,9 +64,10 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('role')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'admin' => 'info',
-                        'manager' => 'success',
-                        'boatman' => 'warning',
+                        'Super Admin' => 'danger',
+                        'Admin' => 'info',
+                        'Manager' => 'success',
+                        'Boatman' => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('phone')
                     ->searchable(),

@@ -19,6 +19,12 @@ class InvoicesResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Return false to hide this resource from the navigation
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

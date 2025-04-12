@@ -16,4 +16,11 @@ class EditUser extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        if (isset($data['role'])) {
+            $record->syncRoles($data['role']);
+        }
+    }
 }

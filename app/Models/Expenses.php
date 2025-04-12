@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Trip;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Expenses extends Model
 {
@@ -11,4 +13,11 @@ class Expenses extends Model
 
     protected $guarded = ['id'];
     
+    /**
+     * Get the trip that owns the expense.
+     */
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class);
+    }
 }
