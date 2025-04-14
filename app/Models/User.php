@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Boat;
 use App\Models\Trip;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -50,5 +51,15 @@ class User extends Authenticatable
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class, 'boatman_id');
+    }
+
+    public function createdBoats()
+    {
+        return $this->hasMany(Boat::class, 'user_id');
+    }
+
+    public function assignedBoats()
+    {
+        return $this->hasMany(Boat::class, 'boatman_id');
     }
 }

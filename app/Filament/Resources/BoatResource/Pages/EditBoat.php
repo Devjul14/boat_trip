@@ -10,6 +10,21 @@ class EditBoat extends EditRecord
 {
     protected static string $resource = BoatResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (!isset($data['user_id']) || empty($data['user_id'])) {
+            $data['user_id'] = auth()->id();
+        }
+        
+        return $data;
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+
     protected function getHeaderActions(): array
     {
         return [

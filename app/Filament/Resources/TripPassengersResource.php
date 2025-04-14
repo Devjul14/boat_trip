@@ -18,6 +18,14 @@ class TripPassengersResource extends Resource
     protected static ?string $model = TripPassengers::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
+    protected static ?string $navigationGroup = 'Operations';
+    protected static ?int $navigationSort = 3;
+
+    public static function shouldRegisterNavigation(): bool
+{
+    // Pastikan ini mengembalikan true atau sesuai dengan logika Anda
+    return true;
+}
     
     public static function form(Form $form): Form
     {

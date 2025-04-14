@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\TripPassenger;
 use App\Models\Trip;
 use App\Models\Hotel;
 use App\Models\TripType;
+use App\Models\TripPassengers;
+use Illuminate\Database\Seeder;
 
 class TripPassengerSeeder extends Seeder
 {
