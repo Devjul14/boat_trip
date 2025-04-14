@@ -22,6 +22,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Support\Facades\Log;
+use Rupadana\ApiService\ApiServicePlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -62,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),
+                ApiServicePlugin::make()
             ])
             ->navigation(function (NavigationBuilder $builder): NavigationBuilder {
                 // Debug: Log user info dan roles
@@ -78,8 +80,8 @@ class AdminPanelProvider extends PanelProvider
                     ]);
                     
                     // NOTE: Ini untuk menampilkan menu berdasarkan kolom 'role' juga
-                    $isAdmin = $user->hasRole('Admin') || $roleInColumn === 'Admin';
-                    $isManager = $user->hasRole('Manager') || $roleInColumn === 'Manager';
+                    $isAdmin = $user->hasRole('admin') || $roleInColumn === 'admin';
+                    $isManager = $user->hasRole('manager') || $roleInColumn === 'manager';
                     $isSuperAdmin = $user->hasRole('Super Admin') || $roleInColumn === 'Super Admin';
                 }
                 

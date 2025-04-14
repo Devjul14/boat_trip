@@ -18,11 +18,7 @@ class TripPassengersResource extends Resource
     protected static ?string $model = TripPassengers::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
-    public static function shouldRegisterNavigation(): bool
-    {
-        // Return false to hide this resource from the navigation
-        return false;
-    }
+    
     public static function form(Form $form): Form
     {
         return $form

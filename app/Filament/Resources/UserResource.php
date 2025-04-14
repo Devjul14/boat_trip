@@ -65,9 +65,9 @@ class UserResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Super Admin' => 'danger',
-                        'Admin' => 'info',
-                        'Manager' => 'success',
-                        'Boatman' => 'warning',
+                        'admin' => 'info',
+                        'manager' => 'success',
+                        'boatman' => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('phone')
                     ->searchable(),
