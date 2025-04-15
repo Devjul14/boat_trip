@@ -17,6 +17,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class TripResource extends Resource
 {
@@ -181,8 +182,8 @@ class TripResource extends Resource
                 Tables\Columns\TextColumn::make('date')
                     ->date()
                     ->sortable(),
-                // Tables\Columns\TextColumn::make('bill_number')
-                //     ->searchable(),
+                Tables\Columns\TextColumn::make('bill_number')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('tripType.name')
                     ->label('Trip Type')
                     ->searchable()
@@ -195,21 +196,6 @@ class TripResource extends Resource
                     ->label('Boatman')
                     ->searchable()
                     ->sortable(),
-                // Tables\Columns\TextColumn::make('tripPassengers_count')
-                //     ->label('Total Hotels')
-                //     ->counts('tripPassengers')
-                //     ->sortable(),
-                Tables\Columns\TextColumn::make('total_passengers')
-                    ->label('Total Passengers')
-                    ->getStateUsing(function (Trip $record) {
-                        return $record->tripPassengers->sum('number_of_passengers');
-                    }),
-                // Tables\Columns\TextColumn::make('total_revenue_usd')
-                //     ->label('Revenue (USD)')
-                //     ->getStateUsing(function (Trip $record) {
-                //         return $record->tripPassengers->sum('total_usd');
-                //     })
-                //     ->money('USD'),
                 Tables\Columns\BadgeColumn::make('status')
                     ->colors([
                         'danger' => 'cancelled',
@@ -260,22 +246,25 @@ class TripResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('view_hotels')
-                    ->label('View Hotels')
-                    ->icon('heroicon-o-building-office')
-                    ->modalHeading(fn (Trip $record) => "Hotels & Passengers for Trip {$record->bill_number}")
+                Tables\Actions\Action::make('view_tickets')
+                    ->label('View Tickets')
+                    ->icon('heroicon-o-ticket')
+                    ->color('warning')
+                    ->modalHeading(fn (Trip $record) => "Ticket Details for Trip {$record->bill_number}")
                     ->modalContent(function (Trip $record) {
-                        $hotels = $record->tripPassengers()->with('hotel')->get()->map(function ($passenger) {
+                        $tickets = $record->tripPassengers()->with('hotel')->get()->map(function ($passenger) {
                             return [
-                                'hotel' => $passenger->hotel->name ?? 'Unknown Hotel',
+                                'hotel' => $passenger->hotel->name ?? 'Walk-in',
                                 'passengers' => $passenger->number_of_passengers,
+                                'excursion_charge' => $passenger->excursion_charge,
+                                'boat_charge' => $passenger->boat_charge,
+                                'charter_charge' => $passenger->charter_charge,
                                 'total_usd' => $passenger->total_usd,
-                                'payment_status' => $passenger->payment_status,
                             ];
                         });
                         
-                        return view('filament.modals.trip-hotels', [
-                            'hotels' => $hotels,
+                        return view('filament.modals.trip-tickets', [
+                            'tickets' => $tickets,
                             'trip' => $record,
                         ]);
                     }),

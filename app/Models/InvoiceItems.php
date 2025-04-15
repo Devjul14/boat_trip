@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Trip;
+use App\Models\Hotel;
 use App\Models\Invoices;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

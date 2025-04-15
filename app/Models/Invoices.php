@@ -21,11 +21,9 @@ class Invoices extends Model
         return $this->belongsTo(Hotel::class);
     }
 
-    /**
-     * Get the invoice items for this invoice.
-     */
-    public function invoiceItems(): HasMany
+    // Satu invoice memiliki banyak item (tiket perjalanan)
+    public function items(): HasMany
     {
-        return $this->hasMany(InvoiceItems::class);
+        return $this->hasMany(InvoiceItem::class);
     }
 }

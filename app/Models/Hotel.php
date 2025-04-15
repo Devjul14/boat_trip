@@ -15,35 +15,15 @@ class Hotel extends Model
 
     protected $guarded = ['id'];
 
-    public function invoices(): HasMany
-    {
-        return $this->hasMany(Invoices::class);
-    }
-
-    /**
-     * Get the trips that this hotel has participated in.
-     */
-    public function trips(): BelongsToMany
-    {
-        return $this->belongsToMany(Trip::class, 'trip_passengers')
-            ->withPivot([
-                'number_of_passengers',
-                'excursion_charge',
-                'boat_charge',
-                'charter_charge',
-                'total_usd',
-                'total_rf',
-                'payment_status',
-                'payment_method'
-            ])
-            ->withTimestamps();
-    }
-
-    /**
-     * Get all trip passengers records for this hotel.
-     */
-    public function tripPassengers(): HasMany
-    {
-        return $this->hasMany(TripPassengers::class);
-    }
+     // Satu hotel dapat memiliki banyak invoice (tagihan bulanan)
+     public function invoices(): HasMany
+     {
+         return $this->hasMany(Invoice::class);
+     }
+ 
+     // Satu hotel dapat memiliki banyak penumpang trip (tiket)
+     public function tripPassengers(): HasMany
+     {
+         return $this->hasMany(TripPassenger::class);
+     }
 }

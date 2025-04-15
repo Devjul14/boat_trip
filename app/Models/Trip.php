@@ -50,25 +50,6 @@ class Trip extends Model
     }
 
     /**
-     * Get the hotels for this trip.
-     */
-    public function hotels(): BelongsToMany
-    {
-        return $this->belongsToMany(Hotel::class, 'trip_passengers')
-            ->withPivot([
-                'number_of_passengers',
-                'excursion_charge',
-                'boat_charge',
-                'charter_charge',
-                'total_usd',
-                'total_rf',
-                'payment_status',
-                'payment_method'
-            ])
-            ->withTimestamps();
-    }
-
-    /**
      * Get all passenger records for this trip.
      */
     public function tripPassengers(): HasMany
