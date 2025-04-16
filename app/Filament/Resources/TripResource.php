@@ -117,25 +117,24 @@ class TripResource extends Resource
                                     ->default(function (Get $get) {
                                         return $get('../../default_charter_charge');
                                     }),
-                                Forms\Components\TextInput::make('total_usd')
-                                    ->label('Total (USD)')
-                                    ->numeric()
-                                    ->reactive()
-                                    ->afterStateUpdated(function (Get $get, Set $set) {
-                                        // Kalkulator Total USD berdasarkan charges dan jumlah penumpang
-                                        $passengers = (int) $get('number_of_passengers');
-                                        $excursion = (float) $get('excursion_charge');
-                                        $boat = (float) $get('boat_charge');
-                                        $charter = (float) $get('charter_charge');
+                                // Forms\Components\TextInput::make('total_usd')
+                                //     ->label('Total (USD)')
+                                //     ->numeric()
+                                //     ->reactive()
+                                //     ->afterStateUpdated(function (Get $get, Set $set) {
+                                //         $passengers = (int) $get('number_of_passengers');
+                                //         $excursion = (float) $get('excursion_charge');
+                                //         $boat = (float) $get('boat_charge');
+                                //         $charter = (float) $get('charter_charge');
                                         
-                                        $total = ($excursion + $boat) * $passengers + $charter;
-                                        $set('total_usd', $total);
-                                    })
-                                    ->disabled(),
-                                Forms\Components\TextInput::make('total_rf')
-                                    ->label('Total (RF)')
-                                    ->numeric()
-                                    ->default(0),
+                                //         $total = ($excursion + $boat) * $passengers + $charter;
+                                //         $set('total_usd', $total);
+                                //     })
+                                //     ->disabled(),
+                                // Forms\Components\TextInput::make('total_rf')
+                                //     ->label('Total (RF)')
+                                //     ->numeric()
+                                //     ->default(0),
                                 Forms\Components\Select::make('payment_status')
                                     ->label('Payment Status')
                                     ->options([
@@ -151,7 +150,7 @@ class TripResource extends Resource
                                         'credit_card' => 'Credit Card',
                                     ])
                                     ->nullable()
-                                    ->visible(fn (Get $get): bool => $get('payment_status') === 'paid'),
+                                    ->default('cash'),
                             ])
                             ->columns(3)
                             ->defaultItems(1)
@@ -178,6 +177,7 @@ class TripResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('date')
                     ->date()

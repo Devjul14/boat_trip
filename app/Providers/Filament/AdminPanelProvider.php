@@ -109,13 +109,13 @@ class AdminPanelProvider extends PanelProvider
                 
                 // Trips untuk semua role
                 $operationsItems[] = NavigationItem::make('Trips')
-                    ->icon('heroicon-o-ticket')
+                    ->icon('heroicon-o-paper-airplane')
                     ->url(fn (): string => route('filament.admin.resources.trips.index'))
                     ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.trips.*'));
                 
                 
-                    $operationsItems[] = NavigationItem::make('Trip Passengers')
-                        ->icon('heroicon-o-user-group')
+                    $operationsItems[] = NavigationItem::make('Tikets')
+                        ->icon('heroicon-o-ticket')
                         ->url(fn (): string => route('filament.admin.resources.trip-passengers.index'))
                         ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.trip-passengers.*'));
                 
