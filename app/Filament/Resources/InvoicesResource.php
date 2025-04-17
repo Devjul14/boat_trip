@@ -384,6 +384,22 @@ class InvoicesResource extends Resource
                                 ->send();
                             return;
                         }
+
+                        // Check if any passengers on this trip have already paid in cash
+                        $paidCashPassengers = $trip->tripPassengers()
+                        ->where('payment_status', 'paid')
+                        ->where('payment_method', 'cash')
+                        ->count();
+
+                        if ($paidCashPassengers > 0) {
+                        Notification::make()
+                            ->warning()
+                            ->title('Payment Notification')
+                            ->body('This trip has already been paid in cash by some passengers.')
+                            ->persistent()
+                            ->send();
+                        return;
+                        }
                         
                         // Create a collection with just this invoice
                         $invoices = collect([$record]);
