@@ -37,65 +37,6 @@ class TripResource extends Resource
      * @param Trip $trip
      * @return void
      */
-    protected static function sendInvoiceEmail(Hotel $hotel, Invoices $invoice, Trip $trip)
-    {
-        $data = [
-            'hotel' => $hotel,
-            'invoice' => $invoice,
-            'trip' => $trip,
-            'contactPerson' => $hotel->contact_person
-        ];
-        
-        try {
-            Mail::send('emails.invoice', $data, function($message) use ($hotel, $invoice) {
-                $message->to($hotel->email, $hotel->contact_person)
-                        ->subject("New Invoice #{$invoice->invoice_number} Generated");
-            });
-            
-            // Log successful email sending
-            \Illuminate\Support\Facades\Log::info("Email sent successfully to {$hotel->email} for invoice #{$invoice->invoice_number}");
-            
-            return true;
-        } catch (\Exception $e) {
-            // Log the error but don't stop the process
-            \Illuminate\Support\Facades\Log::error("Failed to send invoice email: {$e->getMessage()}");
-            return false;
-        }
-    }
-
-    /**
-     * Check if the current user is an admin
-     * 
-     * @return bool
-     */
-    protected static function isAdmin()
-    {
-        // Check if user has admin role
-        $user = Auth::user();
-        
-        // Log user information to help debug permission issues
-        if ($user) {
-            \Illuminate\Support\Facades\Log::info("User ID: {$user->id}, Name: {$user->name}");
-            if (method_exists($user, 'getRoleNames')) {
-                \Illuminate\Support\Facades\Log::info("User roles: " . implode(', ', $user->getRoleNames()->toArray()));
-            } else {
-                \Illuminate\Support\Facades\Log::info("User role attribute: " . ($user->role ?? 'none'));
-            }
-        } else {
-            \Illuminate\Support\Facades\Log::warning("No authenticated user found when checking admin status");
-        }
-        
-        // You may need to adjust this logic based on your role system
-        $isAdmin = $user && (
-            (method_exists($user, 'hasRole') && $user->hasRole('admin')) || 
-            $user->role === 'admin' || 
-            (property_exists($user, 'is_admin') && $user->is_admin)
-        );
-        
-        \Illuminate\Support\Facades\Log::info("Admin check result: " . ($isAdmin ? 'true' : 'false'));
-        
-        return $isAdmin;
-    }
 
     public static function form(Form $form): Form
     {
@@ -301,159 +242,82 @@ class TripResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('complete_trip')
-                    ->label('Complete Trip')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->action(function (Trip $record) {
-                        if ($record->status === 'scheduled') {
-                            // Log the action
-                            \Illuminate\Support\Facades\Log::info("Starting trip completion process for trip ID: {$record->id}");
-                            
-                            // Update trip status
-                            $record->update(['status' => 'completed']);
-                            
-                            // Generate invoices for each hotel in the trip
-                            $tripPassengersByHotel = $record->tripPassengers()->get()->groupBy('hotel_id');
-                            $invoiceCount = 0;
-                            
-                            foreach ($tripPassengersByHotel as $hotelId => $passengers) {
-                                if (!$hotelId) continue; // Skip if hotel_id is null
-                                
-                                // Log hotel processing
-                                \Illuminate\Support\Facades\Log::info("Processing hotel ID: {$hotelId} with " . count($passengers) . " passenger records");
-                                
-                                // Calculate total amount for this hotel
-                                $totalAmount = $passengers->sum(function ($passenger) {
-                                    $passengerCount = $passenger->number_of_passengers;
-                                    $perPassengerCharge = ($passenger->excursion_charge + $passenger->boat_charge);
-                                    return ($perPassengerCharge * $passengerCount) + $passenger->charter_charge;
-                                });
-                                
-                                // Generate invoice number
-                                $lastInvoice = Invoices::orderBy('id', 'desc')->first();
-                                $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4, 4)) : 0;
-                                $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-                                $invoiceNumber = 'INV/' . $newNumber . '/' . date('Y');
-                                
-                                \Illuminate\Support\Facades\Log::info("Generated invoice number: {$invoiceNumber}");
-                                
-                                // Get current month and year
-                                $nowDate = date('Y-m-d'); // Use proper MySQL date format
-                                $currentMonth = date('F'); // Full month name
-                                $currentYear = date('Y');
-                                
-                                // Create invoice record
-                                $invoice = Invoices::create([
-                                    'invoice_number' => $invoiceNumber,
-                                    'hotel_id' => $hotelId,
-                                    'month' => $currentMonth,
-                                    'year' => $currentYear,
-                                    'issue_date' => null,
-                                    'due_date' => null,
-                                    'total_amount' => $totalAmount,
-                                    'status' => 'draft',
-                                ]);
-                                
-                                \Illuminate\Support\Facades\Log::info("Created invoice ID: {$invoice->id} for hotel {$hotelId}");
-                                $invoiceCount++;
-                            }
-                            
-                            // Show success notification
-                            Notification::make()
-                                ->success()
-                                ->title('Trip Completed Successfully')
-                                ->body("Trip {$record->bill_number} has been marked as completed and {$invoiceCount} invoice(s) have been generated.")
-                                ->persistent()
-                                ->send();
-                                
-                            \Illuminate\Support\Facades\Log::info("Trip completion process successful for trip {$record->id}. Generated {$invoiceCount} invoices");
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Complete Trip')
-                    ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records for each hotel.')
-                    ->modalSubmitActionLabel('Yes, complete trip')
-                    ->visible(fn (Trip $record) => $record->status === 'scheduled'),
-                
-                // Separate action for sending emails - admin only
-                Tables\Actions\Action::make('send_invoice_emails')
-                    ->label('Send Invoice')
-                    ->icon('heroicon-o-envelope')
-                    ->color('warning')
-                    ->action(function (Trip $record) {
-                        // Check if user is admin first
-                        if (!self::isAdmin()) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Permission Denied')
-                                ->body('Only administrators can send invoice emails.')
-                                ->persistent()
-                                ->send();
-                            return;
-                        }
+                ->label('Complete Trip')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->action(function (Trip $record) {
+                    if ($record->status === 'scheduled') {
+                        // Log the action
+                        \Illuminate\Support\Facades\Log::info("Starting trip completion process for trip ID: {$record->id}");
                         
-                        // Get invoices related to this trip (by hotels)
-                        $hotelIds = $record->tripPassengers()->pluck('hotel_id')->unique()->filter();
-                        $emailsSent = 0;
-                        $emailsFailed = 0;
+                        // Update trip status
+                        $record->update(['status' => 'completed']);
                         
-                        foreach ($hotelIds as $hotelId) {
-                            $hotel = Hotel::find($hotelId);
-                            if (!$hotel || !$hotel->email) continue;
+                        // Generate invoices for each hotel in the trip
+                        $tripPassengersByHotel = $record->tripPassengers()->get()->groupBy('hotel_id');
+                        $invoiceCount = 0;
+                        
+                        // Calculate issue date from trip date
+                        $issueDate = $record->date;
+                        
+                        // Calculate due date (1 week after issue date)
+                        $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
+                        
+                        foreach ($tripPassengersByHotel as $hotelId => $passengers) {
+                            if (!$hotelId) continue; // Skip if hotel_id is null
                             
-                            // Find the most recent invoice for this hotel
-                            $invoice = Invoices::where('hotel_id', $hotelId)
-                                ->orderBy('created_at', 'desc')
-                                ->first();
+                            // Log hotel processing
+                            \Illuminate\Support\Facades\Log::info("Processing hotel ID: {$hotelId} with " . count($passengers) . " passenger records");
                             
-                            if (!$invoice) continue;
+                            // Calculate total amount for this hotel
+                            $totalAmount = $passengers->sum(function ($passenger) {
+                                $passengerCount = $passenger->number_of_passengers;
+                                $perPassengerCharge = ($passenger->excursion_charge + $passenger->boat_charge);
+                                return ($perPassengerCharge * $passengerCount) + $passenger->charter_charge;
+                            });
                             
-                            // Send the email
-                            $result = self::sendInvoiceEmail($hotel, $invoice, $record);
+                            // Generate invoice number
+                            $lastInvoice = Invoices::orderBy('id', 'desc')->first();
+                            $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4, 4)) : 0;
+                            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+                            $invoiceNumber = 'INV/' . $newNumber . '/' . date('Y');
                             
-                            if ($result) {
-                                $emailsSent++;
-                            } else {
-                                $emailsFailed++;
-                            }
+                            \Illuminate\Support\Facades\Log::info("Generated invoice number: {$invoiceNumber}");
+                            
+                            // Create invoice record with trip_id, issue_date, and due_date
+                            $invoice = Invoices::create([
+                                'invoice_number' => $invoiceNumber,
+                                'hotel_id' => $hotelId,
+                                'trip_id' => $record->id,  // Include trip_id
+                                'month' => date('F'),      // Full month name
+                                'year' => date('Y'),
+                                'issue_date' => $issueDate, // Set to trip date
+                                'due_date' => $dueDate,     // Set to 1 week after issue date
+                                'total_amount' => $totalAmount,
+                                'status' => 'draft',
+                            ]);
+                            
+                            \Illuminate\Support\Facades\Log::info("Created invoice ID: {$invoice->id} for hotel {$hotelId}");
+                            $invoiceCount++;
                         }
                         
                         // Show success notification
-                        if ($emailsSent > 0 || $emailsFailed > 0) {
-                            $notificationBody = "{$emailsSent} email(s) sent successfully";
+                        Notification::make()
+                            ->success()
+                            ->title('Trip Completed Successfully')
+                            ->body("Trip {$record->bill_number} has been marked as completed and {$invoiceCount} invoice(s) have been generated.")
+                            ->persistent()
+                            ->send();
                             
-                            if ($emailsFailed > 0) {
-                                $notificationBody .= ", {$emailsFailed} email(s) failed to send";
-                            }
-                            
-                            Notification::make()
-                                ->success()
-                                ->title('Invoice Emails Sent')
-                                ->body($notificationBody)
-                                ->persistent()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->warning()
-                                ->title('No Emails Sent')
-                                ->body('No valid hotels with email addresses were found for this trip.')
-                                ->persistent()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Send Invoice Emails')
-                    ->modalDescription('Are you sure you want to send invoice emails to all hotels in this trip?')
-                    ->modalSubmitActionLabel('Yes, send emails')
-                    ->visible(function (Trip $record) {
-                        // Debug logs to help diagnose visibility issues
-                        \Illuminate\Support\Facades\Log::info("Checking send_invoice_emails visibility for trip {$record->id}");
-                        \Illuminate\Support\Facades\Log::info("Trip status: {$record->status}");
-                        \Illuminate\Support\Facades\Log::info("Is admin: " . (self::isAdmin() ? 'true' : 'false'));
-                        
-                        // Make visible only if trip is completed and user is admin
-                        return $record->status === 'completed' && self::isAdmin();
-                    }),
+                        \Illuminate\Support\Facades\Log::info("Trip completion process successful for trip {$record->id}. Generated {$invoiceCount} invoices");
+                    }
+                })
+                ->requiresConfirmation()
+                ->modalHeading('Complete Trip')
+                ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records for each hotel.')
+                ->modalSubmitActionLabel('Yes, complete trip')
+                ->visible(fn (Trip $record) => $record->status === 'scheduled'),
+
 
                 Tables\Actions\Action::make('view_tickets')
                     ->label('View Tickets')
@@ -569,96 +433,7 @@ class TripResource extends Resource
                         ->deselectRecordsAfterCompletion()
                         ->visible(fn () => true),
                     
-                    // Add bulk send emails action - admin only
-                    Tables\Actions\BulkAction::make('send_bulk_emails')
-                        ->label('Send Invoice')
-                        ->icon('heroicon-o-envelope')
-                        ->color('warning')
-                        ->action(function (Collection $records) {
-                            // Check if user is admin
-                            if (!self::isAdmin()) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Permission Denied')
-                                    ->body('Only administrators can send invoice emails.')
-                                    ->persistent()
-                                    ->send();
-                                return;
-                            }
-                            
-                            $totalEmailsSent = 0;
-                            $totalEmailsFailed = 0;
-                            $completedTrips = 0;
-                            
-                            foreach ($records as $record) {
-                                // Only process completed trips
-                                if ($record->status !== 'completed') {
-                                    \Illuminate\Support\Facades\Log::info("Skipping trip {$record->id} with status '{$record->status}' for bulk emails");
-                                    continue;
-                                }
-                                
-                                $completedTrips++;
-                                \Illuminate\Support\Facades\Log::info("Processing completed trip {$record->id} for bulk emails");
-                                
-                                $hotelIds = $record->tripPassengers()->pluck('hotel_id')->unique()->filter();
-                                
-                                foreach ($hotelIds as $hotelId) {
-                                    $hotel = Hotel::find($hotelId);
-                                    if (!$hotel || !$hotel->email) continue;
-                                    
-                                    // Find the most recent invoice for this hotel
-                                    $invoice = Invoices::where('hotel_id', $hotelId)
-                                        ->orderBy('created_at', 'desc')
-                                        ->first();
-                                    
-                                    if (!$invoice) continue;
-                                    
-                                    // Send the email
-                                    $result = self::sendInvoiceEmail($hotel, $invoice, $record);
-                                    
-                                    if ($result) {
-                                        $totalEmailsSent++;
-                                    } else {
-                                        $totalEmailsFailed++;
-                                    }
-                                }
-                            }
-                            
-                            \Illuminate\Support\Facades\Log::info("Bulk email process completed: {$completedTrips} completed trips processed, {$totalEmailsSent} emails sent, {$totalEmailsFailed} emails failed");
-                            
-                            // Show result notification
-                            if ($totalEmailsSent > 0 || $totalEmailsFailed > 0) {
-                                $notificationBody = "{$totalEmailsSent} email(s) sent successfully";
-                                
-                                if ($totalEmailsFailed > 0) {
-                                    $notificationBody .= ", {$totalEmailsFailed} email(s) failed to send";
-                                }
-                                
-                                Notification::make()
-                                    ->success()
-                                    ->title('Invoice Emails Sent')
-                                    ->body($notificationBody)
-                                    ->persistent()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->warning()
-                                    ->title('No Emails Sent')
-                                    ->body('No valid hotels with email addresses were found for the selected trips.')
-                                    ->persistent()
-                                    ->send();
-                            }
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Send Bulk Invoice Emails')
-                        ->modalDescription('Are you sure you want to send invoice emails for all selected completed trips?')
-                        ->modalSubmitActionLabel('Yes, send emails')
-                        ->deselectRecordsAfterCompletion()
-                        ->visible(function () {
-                            $isAdmin = self::isAdmin();
-                            \Illuminate\Support\Facades\Log::info("Bulk email action visibility check: isAdmin = " . ($isAdmin ? 'true' : 'false'));
-                            return $isAdmin;
-                        }),
+                    
                 ]),
             ]);
     }

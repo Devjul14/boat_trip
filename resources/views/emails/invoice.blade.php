@@ -49,11 +49,16 @@
         <div class="invoice-details">
             <h3>Invoice Details:</h3>
             <p><strong>Invoice Number:</strong> {{ $invoice->invoice_number }}</p>
-            <p><strong>Trip Date:</strong> {{ $trip->date }}</p>
-            <p><strong>Bill Number:</strong> {{ $trip->bill_number }}</p>
+            <p><strong>Hotel:</strong> {{ $hotel->name }}</p>
+            <p><strong>Hotel Address:</strong> {{ $hotel->address }}</p>
+            @if($trip)
+                <p><strong>Trip Date:</strong> {{ $trip->date }}</p>
+                <p><strong>Bill Number:</strong> {{ $trip->bill_number }}</p>
+                <p><strong>Trip Type:</strong> {{ $trip->tripType->name ?? 'N/A' }}</p>
+            @endif
             <p><strong>Month/Year:</strong> {{ $invoice->month }}/{{ $invoice->year }}</p>
             <p><strong>Total Amount:</strong> ${{ number_format($invoice->total_amount, 2) }}</p>
-            <p><strong>Status:</strong> Draft</p>
+            <p><strong>Status:</strong> {{ ucfirst($invoice->status) }}</p>
         </div>
         
         <p>The invoice is currently in draft status. We will be sending the official invoice shortly.</p>

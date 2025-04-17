@@ -50,7 +50,7 @@ class Trip extends Model
     }
 
     /**
-     * Get all passenger records for this trip.
+     * Get all passenger records for this trip as ticket.
      */
     public function tripPassengers(): HasMany
     {

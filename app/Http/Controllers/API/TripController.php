@@ -25,6 +25,7 @@ class TripController extends Controller
             
             // Find the trip by ID
             $trip = Trip::findOrFail($id);
+            $trip_id = $trip->id;
             Log::info("API: Found trip with bill number: {$trip->bill_number}");
             
             // Check if trip is already completed
@@ -89,6 +90,7 @@ class TripController extends Controller
                 $invoice = Invoices::create([
                     'invoice_number' => $invoiceNumber,
                     'hotel_id' => $hotelId,
+                    'trip_id' => $trip_id,
                     'month' => $currentMonth,
                     'year' => $currentYear,
                     'issue_date' => $currentDate,

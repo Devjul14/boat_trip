@@ -134,12 +134,12 @@ class AdminPanelProvider extends PanelProvider
                 if ($isAdmin || $isManager || $isSuperAdmin) {
                     $financeItems = [];
                     
-                    // Expenses untuk Admin, Super Admin
+                    // invoices untuk Admin, Super Admin
                     if ($isAdmin || $isSuperAdmin) {
-                        $financeItems[] = NavigationItem::make('Expenses')
+                        $financeItems[] = NavigationItem::make('Invoices')
                             ->icon('heroicon-o-currency-dollar')
-                            ->url(fn (): string => route('filament.admin.resources.expenses.index'))
-                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.expenses.*'));
+                            ->url(fn (): string => route('filament.admin.resources.invoices.index'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.invoices.*'));
                     }
                     
                     if (!empty($financeItems)) {
