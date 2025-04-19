@@ -15,15 +15,13 @@ class Hotel extends Model
 
     protected $guarded = ['id'];
 
-     // Satu hotel dapat memiliki banyak invoice (tagihan bulanan)
      public function invoices(): HasMany
      {
          return $this->hasMany(Invoice::class);
      }
  
-     // Satu hotel dapat memiliki banyak penumpang trip (tiket)
      public function tripPassengers(): HasMany
      {
-         return $this->hasMany(TripPassenger::class);
+         return $this->hasMany(TripPassengers::class);
      }
 }
