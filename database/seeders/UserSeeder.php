@@ -10,12 +10,21 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Create super admin 
+        User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'Super Admin',
+            'phone' => '1234567890',
+        ]);
+
         // Create admin user
         User::create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
-            'role' => 'admin',
+            'role' => 'Admin',
             'phone' => '1234567890',
         ]);
 

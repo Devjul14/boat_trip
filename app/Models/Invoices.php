@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Trip;
+use App\Models\Hotel;
 use App\Models\InvoiceItems;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,9 +23,11 @@ class Invoices extends Model
         return $this->belongsTo(Hotel::class);
     }
 
-    // Satu invoice memiliki banyak item (tiket perjalanan)
-    public function items(): HasMany
+        /**
+     * Get the trip associated with this invoice.
+     */
+    public function trip(): BelongsTo
     {
-        return $this->hasMany(InvoiceItem::class);
+        return $this->belongsTo(Trip::class);
     }
 }

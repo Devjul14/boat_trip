@@ -16,18 +16,23 @@
                 </thead>
                 <tbody>
                     @foreach($tickets as $ticket)
+                        @php
+                            $total = $ticket['excursion_charge'] + $ticket['boat_charge'] + $ticket['charter_charge'];
+                        @endphp
                         <tr class="border-t">
                             <td class="px-4 py-2">{{ $ticket['hotel'] }}</td>
                             <td class="px-4 py-2 text-center">{{ $ticket['passengers'] }}</td>
                             <td class="px-4 py-2 text-right">{{ number_format($ticket['excursion_charge'], 2) }}</td>
                             <td class="px-4 py-2 text-right">{{ number_format($ticket['boat_charge'], 2) }}</td>
                             <td class="px-4 py-2 text-right">{{ number_format($ticket['charter_charge'], 2) }}</td>
-                            <td class="px-4 py-2 text-right font-medium">{{ number_format($ticket['total_usd'], 2) }}</td>
+                            <td class="px-4 py-2 text-right font-medium">{{ number_format($total, 2) }}</td>
                         </tr>
                     @endforeach
                     <tr class="border-t">
                         <td colspan="5" class="px-4 py-2 text-right font-medium text-amber-600">Total Amount</td>
-                        <td class="px-4 py-2 text-right font-bold">${{ number_format($tickets->sum('total_usd'), 2) }}</td>
+                        <td class="px-4 py-2 text-right font-bold">${{ number_format($tickets->sum(function($ticket) {
+                            return $ticket['excursion_charge'] + $ticket['boat_charge'] + $ticket['charter_charge'];
+                        }), 2) }}</td>
                     </tr>
                 </tbody>
             </table>

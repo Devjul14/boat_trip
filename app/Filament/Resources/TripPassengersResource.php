@@ -3,15 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TripPassengersResource\Pages;
-use App\Filament\Resources\TripPassengersResource\RelationManagers;
 use App\Models\TripPassengers;
-use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Filters\SelectFilter;
 
 class TripPassengersResource extends Resource
 {
@@ -22,80 +18,62 @@ class TripPassengersResource extends Resource
     protected static ?int $navigationSort = 3;
 
     public static function shouldRegisterNavigation(): bool
-{
-    // Pastikan ini mengembalikan true atau sesuai dengan logika Anda
-    return true;
-}
-    
-    public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('trip_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('hotel_id')
-                    ->tel()
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('number_of_passengers')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('excursion_charge')
-                    ->required()
-                    ->numeric()
-                    ->default(0.00),
-                Forms\Components\TextInput::make('boat_charge')
-                    ->required()
-                    ->numeric()
-                    ->default(0.00),
-                Forms\Components\TextInput::make('charter_charge')
-                    ->required()
-                    ->numeric()
-                    ->default(0.00),
-                Forms\Components\TextInput::make('total_usd')
-                    ->required()
-                    ->numeric()
-                    ->default(0.00),
-                Forms\Components\TextInput::make('total_rf')
-                    ->required()
-                    ->numeric()
-                    ->default(0.00),
-                Forms\Components\TextInput::make('payment_status')
-                    ->required(),
-                Forms\Components\TextInput::make('payment_method')
-                    ->maxLength(255),
-            ]);
+        return true;
+    }
+
+    public static function getModelLabel(): string
+    {
+        return 'Tickets'; 
+    }
+    
+    
+    public static function getNavigationLabel(): string
+    {
+        return 'Tiket';
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('trip.date', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('trip_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('trip.date')
+                    ->label('Date')
+                    ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('hotel_id')
-                    ->numeric()
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('trip.bill_number')
+                //     ->sortable()
+                //     ->searchable(),
+                Tables\Columns\TextColumn::make('hotel.name')
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('number_of_passengers')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('excursion_charge')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->money('USD'),
                 Tables\Columns\TextColumn::make('boat_charge')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->money('USD'),
                 Tables\Columns\TextColumn::make('charter_charge')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->money('USD'),
                 Tables\Columns\TextColumn::make('total_usd')
                     ->numeric()
-                    ->sortable(),
+                    ->state(function ($record): float {
+                        return $record->excursion_charge + $record->boat_charge + $record->charter_charge;
+                    })
+                    ->sortable()
+                    ->money('USD'),
                 Tables\Columns\TextColumn::make('total_rf')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->money('MVR'),
                 Tables\Columns\TextColumn::make('payment_status'),
                 Tables\Columns\TextColumn::make('payment_method')
                     ->searchable(),
@@ -109,31 +87,25 @@ class TripPassengersResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('hotel_id')
+                    ->label('Hotel')
+                    ->relationship('hotel', 'name')
+                    ->searchable()
+                    ->preload()
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->actions([])
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListTripPassengers::route('/'),
-            'create' => Pages\CreateTripPassengers::route('/create'),
-            'edit' => Pages\EditTripPassengers::route('/{record}/edit'),
         ];
     }
 }

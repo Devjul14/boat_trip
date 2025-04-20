@@ -17,7 +17,8 @@ class ViewTrip extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            Actions\EditAction::make()
+                ->visible(fn ($record) => $record->status === 'scheduled'),
         ];
     }
 
