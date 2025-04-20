@@ -40,16 +40,12 @@ class UserResource extends Resource
                     ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                     ->dehydrated(fn ($state) => filled($state))
                     ->required(fn (string $context): bool => $context === 'create'),
-                Forms\Components\Select::make('role')
+                Forms\Components\Select::make('role_id')
                     ->label('Role')
+                    ->relationship('roles', 'name')
+                    ->preload()
+                    ->searchable()
                     ->required()
-                    ->options(function () {
-                        return Role::all()->pluck('name', 'name');
-                    })
-                    ->default('boatman')
-                    ->afterStateUpdated(function (string $state, callable $set) {
-                        $set('role', $state);
-                    })
             ]);
     }
 
@@ -65,9 +61,9 @@ class UserResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Super Admin' => 'danger',
-                        'admin' => 'info',
-                        'manager' => 'success',
-                        'boatman' => 'warning',
+                        'Admin' => 'info',
+                        'Manager' => 'success',
+                        'Boatman' => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('phone')
                     ->searchable(),
@@ -83,9 +79,9 @@ class UserResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->options([
-                        'admin' => 'Admin',
-                        'manager' => 'Manager',
-                        'boatman' => 'Boatman',
+                        'Admin' => 'Admin',
+                        'Manager' => 'Manager',
+                        'Boatman' => 'Boatman',
                     ]),
             ])
             ->actions([

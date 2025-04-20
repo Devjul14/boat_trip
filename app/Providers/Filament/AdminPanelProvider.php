@@ -90,10 +90,10 @@ class AdminPanelProvider extends PanelProvider
                     ]);
                     
                     // NOTE: Ini untuk menampilkan menu berdasarkan kolom 'role' juga
-                    $isAdmin = $user->hasRole('admin') || $roleInColumn === 'admin';
-                    $isManager = $user->hasRole('manager') || $roleInColumn === 'manager';
+                    $isAdmin = $user->hasRole('Admin') || $roleInColumn === 'Admin';
+                    $isManager = $user->hasRole('Manager') || $roleInColumn === 'Manager';
                     $isSuperAdmin = $user->hasRole('Super Admin') || $roleInColumn === 'Super Admin';
-                    $isBoatman = $user->hasRole('boatman') || $roleInColumn === 'boatman';
+                    $isBoatman = $user->hasRole('Boatman') || $roleInColumn === 'Boatman';
                 }
                 
                 // Dashboard untuk semua pengguna

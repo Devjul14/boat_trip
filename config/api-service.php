@@ -14,10 +14,14 @@ return [
             'enable_policy' => true,
         ],
     ],
-    'route' => [
-        'panel_prefix' => true,
-        'use_resource_middlewares' => false,
+'route' => [
+    'prefix' => 'api',
+    'middleware' => [
+        'api',
+        'auth:web',  // Ubah ke auth:web
     ],
+    'use_resource_middlewares' => true,
+],
     'tenancy' => [
         'enabled' => false,
         'awareness' => false,

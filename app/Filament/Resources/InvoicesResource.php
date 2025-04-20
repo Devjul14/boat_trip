@@ -225,8 +225,8 @@ class InvoicesResource extends Resource
         
         // You may need to adjust this logic based on your role system
         $isAdmin = $user && (
-            (method_exists($user, 'hasRole') && $user->hasRole('admin')) || 
-            $user->role === 'admin' || 
+            (method_exists($user, 'hasRole') && $user->hasRole('Admin')) || 
+            $user->role === 'Admin' || 
             (property_exists($user, 'is_admin') && $user->is_admin)
         );
         
