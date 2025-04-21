@@ -9,33 +9,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class InvoiceItems extends Model
+class Ticket extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'invoice_id',
         'trip_id',
-        'description',
         'number_of_passengers',
-        'excursion_charge',
-        'boat_charge',
-        'charter_charge',
-        'total_amount',
+        'is_hotel_ticket',
+        'description',
+        'price',
     ];
-    
 
-    /**
-     * Get the invoice that owns the invoice item.
-     */
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoices::class);
     }
 
-    /**
-     * Get the trip associated with this invoice item.
-     */
+    public function hotel(): BelongsTo
+    {
+        return $this->belongsTo(Hotel::class);
+    }
+
     public function trip(): BelongsTo
     {
         return $this->belongsTo(Trip::class);

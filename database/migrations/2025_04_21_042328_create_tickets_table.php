@@ -11,16 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('invoice_items', function (Blueprint $table) {
+        Schema::create('tickets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invoice_id')->constrained()->onDelete('cascade');
             $table->foreignId('trip_id')->constrained()->onDelete('cascade');
+            $table->integer('number_of_passengers');            
+            $table->boolean('is_hotel_ticket')->default(false);            
             $table->string('description');
-            $table->integer('number_of_passengers');
-            $table->decimal('excursion_charge', 10, 2)->default(0);
-            $table->decimal('boat_charge', 10, 2)->default(0);
-            $table->decimal('charter_charge', 10, 2)->default(0);
-            $table->decimal('total_amount', 10, 2);
+            $table->decimal('price', 10, 2);
             $table->timestamps();
         });
     }
@@ -30,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('invoice_items');
+        Schema::dropIfExists('tickets');
     }
 };

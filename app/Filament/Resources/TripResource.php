@@ -256,6 +256,7 @@ class TripResource extends Resource
                         // Generate invoices for each hotel in the trip
                         $tripPassengersByHotel = $record->tripPassengers()->get()->groupBy('hotel_id');
                         $invoiceCount = 0;
+                        $ticketCount = 0;
                         
                         // Calculate issue date from trip date
                         $issueDate = $record->date;
@@ -299,22 +300,50 @@ class TripResource extends Resource
                             
                             \Illuminate\Support\Facades\Log::info("Created invoice ID: {$invoice->id} for hotel {$hotelId}");
                             $invoiceCount++;
+                            
+                            // Create one ticket per hotel
+                            // Get hotel name for description
+                            $hotel = Hotel::find($hotelId);
+                            $hotelName = $hotel ? $hotel->name : 'Unknown Hotel';
+                            
+                            // Calculate total number of passengers
+                            $totalPassengers = $passengers->sum('number_of_passengers');
+                            
+                            // Calculate total price (sum of all charges)
+                            $totalPrice = $passengers->sum(function ($passenger) {
+                                $passengerCount = $passenger->number_of_passengers;
+                                $perPassengerCharge = ($passenger->excursion_charge + $passenger->boat_charge);
+                                return ($perPassengerCharge * $passengerCount) + $passenger->charter_charge;
+                            });
+                            
+                            // Create a single ticket for the hotel
+                            \App\Models\Ticket::create([
+                                'invoice_id' => $invoice->id,
+                                'trip_id' => $record->id,
+                                'number_of_passengers' => $totalPassengers,
+                                'is_hotel_ticket' => true,
+                                'description' => "Trip charges for {$totalPassengers} passengers from {$hotelName}",
+                                'price' => $totalPrice,
+                            ]);
+                            $ticketCount++;
+                            
+                            \Illuminate\Support\Facades\Log::info("Created ticket for hotel ID: {$hotelId} with {$totalPassengers} passengers");
                         }
                         
                         // Show success notification
                         Notification::make()
                             ->success()
                             ->title('Trip Completed Successfully')
-                            ->body("Trip {$record->bill_number} has been marked as completed and {$invoiceCount} invoice(s) have been generated.")
+                            ->body("Trip {$record->bill_number} has been marked as completed. {$invoiceCount} invoice(s) and {$ticketCount} ticket(s) have been generated.")
                             ->persistent()
                             ->send();
                             
-                        \Illuminate\Support\Facades\Log::info("Trip completion process successful for trip {$record->id}. Generated {$invoiceCount} invoices");
+                        \Illuminate\Support\Facades\Log::info("Trip completion process successful for trip {$record->id}. Generated {$invoiceCount} invoices and {$ticketCount} tickets");
                     }
                 })
                 ->requiresConfirmation()
                 ->modalHeading('Complete Trip')
-                ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records for each hotel.')
+                ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records for each hotel and generate tickets.')
                 ->modalSubmitActionLabel('Yes, complete trip')
                 ->visible(fn (Trip $record) => $record->status === 'scheduled'),
 
@@ -369,6 +398,7 @@ class TripResource extends Resource
                         ->action(function (Collection $records) {
                             $completedCount = 0;
                             $totalInvoices = 0;
+                            $totalTickets = 0;
                             
                             foreach ($records as $record) {
                                 if ($record->status === 'scheduled') {
@@ -378,6 +408,12 @@ class TripResource extends Resource
                                     
                                     // Generate invoices for each hotel in the trip
                                     $tripPassengersByHotel = $record->tripPassengers()->get()->groupBy('hotel_id');
+                                    
+                                    // Calculate issue date from trip date
+                                    $issueDate = $record->date;
+                                    
+                                    // Calculate due date (1 week after issue date)
+                                    $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
                                     
                                     foreach ($tripPassengersByHotel as $hotelId => $passengers) {
                                         if (!$hotelId) continue; // Skip if hotel_id is null
@@ -395,23 +431,48 @@ class TripResource extends Resource
                                         $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
                                         $invoiceNumber = 'INV/' . $newNumber . '/' . date('Y');
                                         
-                                        // Get current month and year
-                                        $currentMonth = date('F'); // Full month name
-                                        $currentYear = date('Y');
-                                        
                                         // Create invoice record
                                         $invoice = Invoices::create([
                                             'invoice_number' => $invoiceNumber,
                                             'hotel_id' => $hotelId,
-                                            'month' => $currentMonth,
-                                            'year' => $currentYear,
-                                            'issue_date' => null,
-                                            'due_date' => null,
+                                            'trip_id' => $record->id,
+                                            'month' => date('F'), // Full month name
+                                            'year' => date('Y'),
+                                            'issue_date' => $issueDate,
+                                            'due_date' => $dueDate,
                                             'total_amount' => $totalAmount,
                                             'status' => 'draft',
                                         ]);
                                         
                                         $totalInvoices++;
+                                        
+                                        // Create one ticket per hotel
+                                        // Get hotel name for description
+                                        $hotel = Hotel::find($hotelId);
+                                        $hotelName = $hotel ? $hotel->name : 'Unknown Hotel';
+                                        
+                                        // Calculate total number of passengers
+                                        $totalPassengers = $passengers->sum('number_of_passengers');
+                                        
+                                        // Calculate total price (sum of all charges)
+                                        $totalPrice = $passengers->sum(function ($passenger) {
+                                            $passengerCount = $passenger->number_of_passengers;
+                                            $perPassengerCharge = ($passenger->excursion_charge + $passenger->boat_charge);
+                                            return ($perPassengerCharge * $passengerCount) + $passenger->charter_charge;
+                                        });
+                                        
+                                        // Create a single ticket for the hotel
+                                        \App\Models\Ticket::create([
+                                            'invoice_id' => $invoice->id,
+                                            'trip_id' => $record->id,
+                                            'number_of_passengers' => $totalPassengers,
+                                            'is_hotel_ticket' => true,
+                                            'description' => "Trip charges for {$totalPassengers} passengers from {$hotelName}",
+                                            'price' => $totalPrice,
+                                        ]);
+                                        $totalTickets++;
+                                        
+                                        \Illuminate\Support\Facades\Log::info("Created ticket for hotel ID: {$hotelId} with {$totalPassengers} passengers");
                                     }
                                 }
                             }
@@ -421,14 +482,14 @@ class TripResource extends Resource
                                 Notification::make()
                                     ->success()
                                     ->title('Trips Completed Successfully')
-                                    ->body("{$completedCount} trip(s) have been marked as completed and {$totalInvoices} invoice(s) have been generated.")
+                                    ->body("{$completedCount} trip(s) have been marked as completed. {$totalInvoices} invoice(s) and {$totalTickets} ticket(s) have been generated.")
                                     ->persistent()
                                     ->send();
                             }
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Complete Selected Trips')
-                        ->modalDescription('Are you sure you want to mark all selected trips as completed? This will also create invoice records for each hotel.')
+                        ->modalDescription('Are you sure you want to mark all selected trips as completed? This will create invoice records for each hotel and generate tickets.')
                         ->modalSubmitActionLabel('Yes, complete trips')
                         ->deselectRecordsAfterCompletion()
                         ->visible(fn () => true),

@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\Hotel;
 use App\Models\Expenses;
 use App\Models\TripType;
-use App\Models\InvoiceItems;
+use App\Models\Ticket;
 use App\Models\TripPassengers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -68,10 +68,10 @@ class Trip extends Model
     }
 
     /**
-     * Get the invoice items associated with this trip.
+     * Get the tickets associated with this trip.
      */
-    public function invoiceItems(): HasMany
+    public function ticket(): HasMany
     {
-        return $this->hasMany(InvoiceItems::class);
+        return $this->hasMany(Ticket::class);
     }
 }

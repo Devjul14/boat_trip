@@ -16,6 +16,7 @@ class Invoices extends Model
     protected $fillable = [
         'invoice_number',
         'hotel_id',
+        'trip_id',
         'month',
         'year',
         'issue_date',
