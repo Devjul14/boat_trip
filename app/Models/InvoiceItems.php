@@ -13,7 +13,16 @@ class InvoiceItems extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'invoice_id',
+        'trip_id',
+        'description',
+        'number_of_passengers',
+        'excursion_charge',
+        'boat_charge',
+        'charter_charge',
+        'total_amount',
+    ];
     
 
     /**

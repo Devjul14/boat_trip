@@ -18,7 +18,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Trip extends Model
 {
     use HasFactory;
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'date',
+        'bill_number',
+        'trip_type_id',
+        'boat_id',
+        'boatman_id',
+        'remarks',
+        'status',
+        'petrol_consumed',
+        'petrol_filled',
+    ];
 
     public function tripType(): BelongsTo
     {

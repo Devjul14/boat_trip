@@ -13,7 +13,16 @@ class Invoices extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'invoice_number',
+        'hotel_id',
+        'month',
+        'year',
+        'issue_date',
+        'due_date',
+        'total_amount',
+        'status',
+    ];
 
     /**
      * Get the hotel that owns the invoice.

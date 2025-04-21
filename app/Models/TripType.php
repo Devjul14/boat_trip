@@ -11,7 +11,13 @@ class TripType extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'name',
+        'description',
+        'default_excursion_charge',
+        'default_boat_charge',
+        'default_charter_charge',
+    ];
 
     public function trips(): HasMany
     {

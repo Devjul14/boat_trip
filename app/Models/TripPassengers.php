@@ -12,7 +12,18 @@ class TripPassengers extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'trip_id',
+        'hotel_id',
+        'number_of_passengers',
+        'excursion_charge',
+        'boat_charge',
+        'charter_charge',
+        'total_usd',
+        'total_rf',
+        'payment_status',
+        'payment_method',
+    ];
 
     /**
      * Get the trip that owns the passenger record.

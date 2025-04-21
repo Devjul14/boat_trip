@@ -11,7 +11,12 @@ class Expenses extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'trip_id',
+        'expense_type',
+        'amount',
+        'notes',
+    ];
     
     /**
      * Get the trip that owns the expense.

@@ -13,7 +13,14 @@ class Hotel extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'name',
+        'contact_person',
+        'email',
+        'phone',
+        'address',
+        'payment_terms',
+    ];
 
      public function invoices(): HasMany
      {
