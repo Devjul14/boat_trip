@@ -17,8 +17,16 @@ class TripType extends Model
         'default_excursion_charge',
         'default_boat_charge',
         'default_charter_charge',
+        'image',
     ];
 
+    protected function image(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? "trip-types/{$value}" : null,
+        );
+    }
+    
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);

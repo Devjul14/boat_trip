@@ -28,6 +28,14 @@ class TripTypeResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Textarea::make('description')
                     ->columnSpanFull(),
+                Forms\Components\FileUpload::make('image')
+                    ->image()
+                    ->directory('trip-types')
+                    ->visibility('public')
+                    ->imageResizeMode('cover')
+                    ->imageCropAspectRatio('16:9')
+                    ->imageResizeTargetWidth('1920')
+                    ->imageResizeTargetHeight('1080'),
                 Forms\Components\TextInput::make('default_excursion_charge')
                     ->required()
                     ->numeric()
@@ -49,6 +57,9 @@ class TripTypeResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\ImageColumn::make('image')
+                    ->disk('public')
+                    ->circular(),
                 Tables\Columns\TextColumn::make('default_excursion_charge')
                     ->numeric()
                     ->sortable(),
