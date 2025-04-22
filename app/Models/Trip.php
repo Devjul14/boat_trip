@@ -20,7 +20,6 @@ class Trip extends Model
     use HasFactory;
     protected $fillable = [
         'date',
-        'bill_number',
         'trip_type_id',
         'boat_id',
         'boatman_id',

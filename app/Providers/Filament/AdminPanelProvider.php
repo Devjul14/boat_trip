@@ -106,19 +106,18 @@ class AdminPanelProvider extends PanelProvider
                 
                 // Grup Operations untuk semua pengguna
                 $operationsItems = [];
-                
+                                
                 // Trips untuk semua role
                 $operationsItems[] = NavigationItem::make('Trips')
                     ->icon('heroicon-o-paper-airplane')
                     ->url(fn (): string => route('filament.admin.resources.trips.index'))
                     ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.trips.*'));
-                
-                
-                    $operationsItems[] = NavigationItem::make('Tikets')
-                        ->icon('heroicon-o-ticket')
-                        ->url(fn (): string => route('filament.admin.resources.trip-passengers.index'))
-                        ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.trip-passengers.*'));
-                
+                                
+                                
+                $operationsItems[] = NavigationItem::make('Tikets')
+                    ->icon('heroicon-o-ticket')
+                    ->url(fn (): string => route('filament.admin.resources.tickets.index'))
+                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.tickets.*'));
                 
                 // Hotels untuk Admin, Manager, Super Admin
                 if ($isAdmin || $isManager || $isSuperAdmin) {

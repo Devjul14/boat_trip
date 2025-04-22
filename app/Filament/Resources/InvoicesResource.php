@@ -27,6 +27,11 @@ class InvoicesResource extends Resource
     protected static ?string $model = Invoices::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+
+    public static function canCreate(): bool
+    {
+        return false;
+    }
     
     /**
      * Generate PDF file for hotel invoices
@@ -73,7 +78,6 @@ class InvoicesResource extends Resource
                 $invoicesData[] = [
                     'invoice_number' => $invoice->invoice_number,
                     'trip_date' => $trip->date,
-                    'bill_number' => $trip->bill_number,
                     'trip_type' => $trip->tripType->name ?? 'N/A',
                     'passenger_count' => $passengerCount,
                     'month_year' => "{$invoice->month}/{$invoice->year}",
@@ -235,47 +239,7 @@ class InvoicesResource extends Resource
         return $isAdmin;
     }
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('invoice_number')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Select::make('hotel_id')
-                    ->label('Hotel')
-                    ->relationship('hotel', 'name')
-                    ->required()
-                    ->searchable(),
-                Forms\Components\Select::make('trip_id')
-                    ->label('Trip')
-                    ->relationship('trip', 'bill_number')
-                    ->searchable()
-                    ->nullable(),
-                Forms\Components\TextInput::make('month')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('year')
-                    ->required(),
-                Forms\Components\DatePicker::make('issue_date')
-                    ->required(),
-                Forms\Components\DatePicker::make('due_date')
-                    ->required(),
-                Forms\Components\TextInput::make('total_amount')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$'),
-                Forms\Components\Select::make('status')
-                    ->required()
-                    ->options([
-                        'draft' => 'Draft',
-                        'sent' => 'Sent',
-                        'paid' => 'Paid',
-                        'overdue' => 'Overdue',
-                        'cancelled' => 'Cancelled',
-                    ]),
-            ]);
-    }
+ 
 
     public static function table(Table $table): Table
     {

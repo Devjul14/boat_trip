@@ -167,7 +167,6 @@
             <tr>
                 <th>Invoice #</th>
                 <th>Trip Date</th>
-                <th>Bill #</th>
                 <th>Trip Type</th>
                 <th>Passengers</th>
                 <th>Month/Year</th>
@@ -180,7 +179,6 @@
             <tr>
                 <td>{{ $invoice['invoice_number'] }}</td>
                 <td>{{ $invoice['trip_date'] }}</td>
-                <td>{{ $invoice['bill_number'] }}</td>
                 <td>{{ $invoice['trip_type'] }}</td>
                 <td class="text-center">{{ $invoice['passenger_count'] }}</td>
                 <td>{{ $invoice['month_year'] }}</td>
