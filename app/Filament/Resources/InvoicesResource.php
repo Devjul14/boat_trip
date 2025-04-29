@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InvoicesResource\Pages;
 use App\Filament\Resources\InvoicesResource\RelationManagers;
 use App\Models\Invoices;
+use App\Models\Ticket;
 use App\Models\Hotel;
 use App\Models\Trip;
 use Filament\Forms;
@@ -239,7 +240,71 @@ class InvoicesResource extends Resource
         return $isAdmin;
     }
 
- 
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Invoice Details')
+                    ->schema([
+                        Forms\Components\TextInput::make('invoice_number')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->placeholder('e.g. AK/2025/001'),
+                        Forms\Components\Select::make('hotel_id')
+                            ->label('Hotel')
+                            ->relationship('hotel', 'name')
+                            ->required()
+                            ->searchable(),
+                        // Forms\Components\Select::make('trip_id')
+                        //     ->label('Trip')
+                        //     ->relationship('trip', 'id')
+                        //     ->getOptionLabelFromRecordUsing(fn (Trip $record) => "Trip #{$record->tripType->name} - " . date('d/m/Y', strtotime($record->date)))
+                        //     ->searchable(),
+                        Forms\Components\DatePicker::make('issue_date')
+                            ->label('Issue Date')
+                            ->required()
+                            ->default(now()),
+                        Forms\Components\DatePicker::make('due_date')
+                            ->label('Due Date')
+                            ->required()
+                            ->default(now()->addDays(7)),
+                    ])
+                    ->columns(2),
+                
+                Forms\Components\Section::make('Payment Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('month')
+                            ->required()
+                            ->default(date('F')),
+                        Forms\Components\TextInput::make('year')
+                            ->required()
+                            ->default(date('Y')),
+                        Forms\Components\TextInput::make('total_amount')
+                            ->label('Total Amount ($)')
+                            ->required()
+                            ->numeric()
+                            ->prefix('$'),
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'draft' => 'Draft',
+                                'sent' => 'Sent',
+                                'paid' => 'Paid',
+                                'overdue' => 'Overdue',
+                                'cancelled' => 'Cancelled',
+                            ])
+                            ->required()
+                            ->default('draft'),
+                    ])
+                    ->columns(2),
+                // Forms\Components\Section::make('Additional Information')
+                //     ->schema([
+                //         Forms\Components\Textarea::make('notes')
+                //             ->rows(3)
+                //             ->columnSpan('full'),
+                //     ])
+                //     ->collapsible(),
+            ]);
+    }
 
     public static function table(Table $table): Table
     {

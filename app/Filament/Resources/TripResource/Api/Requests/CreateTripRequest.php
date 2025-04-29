@@ -23,14 +23,13 @@ class CreateTripRequest extends FormRequest
     {
         return [
 			'date' => 'required|date',
-			'bill_number' => 'required|string',
 			'trip_type_id' => 'required',
 			'boat_id' => 'required',
-			'boatman_id' => 'required',
-			'remarks' => 'required|string',
+			'boatman_id' => 'nullable|exists:users,id',
+			'remarks' => 'nullable|string',
 			'status' => 'required|string',
-			'petrol_consumed' => 'required|numeric',
-			'petrol_filled' => 'required|numeric'
+			'petrol_consumed' => 'nullable|numeric',
+			'petrol_filled' => 'nullable|numeric'
 		];
     }
 }

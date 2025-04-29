@@ -18,6 +18,19 @@ class TripTransformer extends JsonResource
      */
     public function toArray($request)
     {
-        return $this->resource->toArray();
+        $isBoatmanOwner = $this->resource->boatman_id === auth()->id();
+        
+        $data = $this->resource->toArray();
+        $data['boatman_id'] = $isBoatmanOwner;
+        
+        $data['trip_type'] = $this->resource->tripType;
+        if (isset($data['trip_type']) && isset($data['trip_type']['image'])) {
+            $data['trip_type']['image'] = url('storage/' . $data['trip_type']['image']);
+        }
+        $data['boat'] = $this->resource->boat;
+        $data['boatman'] = $this->resource->boatman;
+        $data['tickets'] = $this->resource->ticket;
+        
+        return $data;
     }
 }

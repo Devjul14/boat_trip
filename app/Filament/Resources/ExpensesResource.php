@@ -29,12 +29,12 @@ class ExpensesResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('trip_id')
+                Forms\Components\Select::make('expense_type')
+                    ->label('Expense Type')
+                    ->relationship('expenseType', 'name')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('expense_type')
-                    ->required()
-                    ->maxLength(255),
+                    ->searchable()
+                    ->preload(),
                 Forms\Components\TextInput::make('amount')
                     ->required()
                     ->numeric(),
@@ -47,13 +47,19 @@ class ExpensesResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('trip_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('trip.date')
+                    ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('expense_type')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('trip.tripType.name')
+                    ->label('Trip Type')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('expenseType.name')
+                    ->label('Expense Type')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('amount')
-                    ->numeric()
+                    ->money('USD')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

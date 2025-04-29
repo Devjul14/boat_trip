@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TicketResource\Pages;
 use App\Filament\Resources\TicketResource\RelationManagers;
 use App\Models\Ticket;
+use App\Models\Hotel;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -27,18 +28,42 @@ class TicketResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema([
-                Forms\Components\Select::make('invoice_id')
-                    ->relationship('invoice', 'id')
-                    ->required(),
-                Forms\Components\Select::make('trip_id')
-                    ->relationship('trip', 'id')
-                    ->required(),
-                Forms\Components\TextInput::make('passenger_id')
+             ->schema([
+                Forms\Components\Select::make('hotel_id')
+                    ->label('Hotel')
+                    ->options(Hotel::pluck('name', 'id'))
                     ->required()
-                    ->numeric(),
-                Forms\Components\Toggle::make('is_hotel_ticket')
+                    ->searchable(),
+                Forms\Components\TextInput::make('number_of_passengers')
+                    ->label('Number of Passengers')
+                    ->numeric()
+                    ->required()
+                    ->default(1)
+                    ->minValue(1),
+                Forms\Components\TextInput::make('price')
+                    ->label('Price ($)')
+                    ->numeric()
                     ->required(),
+                 Forms\Components\Select::make('payment_status')
+                    ->label('Payment Status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                    ])
+                    ->required()
+                    ->default('pending'),
+                Forms\Components\Select::make('payment_method')
+                    ->label('Payment Method')
+                    ->options([
+                        'cash' => 'Cash',
+                        'bank_transfer' => 'Bank Transfer',
+                        'credit_card' => 'Credit Card',
+                    ])
+                    ->required()
+                    ->default('cash'),
+                Forms\Components\Toggle::make('is_hotel_ticket')
+                    ->label('Is Hotel Ticket')
+                    ->default(true),
             ]);
     }
 
@@ -46,21 +71,29 @@ class TicketResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('invoice.invoice_number')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('trip.date')
+                    ->date('d F Y')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('trip.tripType.name')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('tripPassenger.number_of_passengers')
+                Tables\Columns\TextColumn::make('hotel_id')
+                    ->label('Hotel')
+                    ->searchable()
+                    ->sortable()
+                    ->getStateUsing(function ($record) {
+                        return $record->hotel_id == null ? 'Walk in Trip' : $record->hotel->name;
+                    }),
+                Tables\Columns\TextColumn::make('number_of_passengers')
                     ->label('Total Passengers')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('invoice.total_amount')
-                    ->label('Price ($)')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('price')
+                    ->label('Price')                    
+                    ->money('USD')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_hotel_ticket')
+                    ->label('Hotel Ticket')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -72,10 +105,27 @@ class TicketResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('hotel_id')
+                    ->label('Hotel')
+                    ->options(Hotel::pluck('name', 'id')),
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                    ]),
+                Tables\Filters\SelectFilter::make('payment_method')
+                    ->options([
+                        'cash' => 'Cash',
+                        'bank_transfer' => 'Bank Transfer',
+                        'credit_card' => 'Credit Card',
+                    ]),
+                Tables\Filters\Filter::make('is_hotel_ticket')
+                    ->label('Hotel Tickets Only')
+                    ->query(fn (Builder $query): Builder => $query->where('is_hotel_ticket', true)),
             ])
             ->actions([
                 
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

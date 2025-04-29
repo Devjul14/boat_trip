@@ -25,4 +25,9 @@ class Expenses extends Model
     {
         return $this->belongsTo(Trip::class);
     }
+
+    public function expenseType()
+    {
+        return $this->belongsTo(ExpenseType::class, 'id');
+    }
 }

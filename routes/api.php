@@ -3,7 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Api\TripController;
+use App\Http\Controllers\Api\CompletedTripController;
+use App\Http\Controllers\Api\SelfController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -17,8 +18,19 @@ use App\Http\Controllers\Api\TripController;
 
 Route::post('/login', [LoginController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [LoginController::class, 'logout']);
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/trips/{id}/complete', [CompletedTripController::class, 'completeTrip']);
+    Route::get('/user/profile', [SelfController::class, 'viewSelf']);
+    Route::put('/user/updateProfile', [SelfController::class, 'updateSelf']);
 });
 
-Route::middleware('auth:sanctum')->post('/trips/{id}/complete', [TripController::class, 'completeTrip']);
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+    
+});
+
+
+

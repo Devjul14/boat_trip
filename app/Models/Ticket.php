@@ -17,14 +17,16 @@ class Ticket extends Model
     protected $fillable = [
         'invoice_id',
         'trip_id',
-        'passenger_id',
+        'hotel_id',
         'is_hotel_ticket',
+        'number_of_passengers',
+        'price',
+        'total_usd',
+        'total_rf',
+        'payment_method',
+        'payment_status',
     ];
 
-    public function tripPassenger(): BelongsTo
-    {
-        return $this->belongsTo(TripPassengers::class, 'passenger_id');
-    }
 
     public function invoice(): BelongsTo
     {

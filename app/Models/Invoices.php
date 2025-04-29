@@ -17,6 +17,7 @@ class Invoices extends Model
         'invoice_number',
         'hotel_id',
         'trip_id',
+        'ticket_id',
         'month',
         'year',
         'issue_date',

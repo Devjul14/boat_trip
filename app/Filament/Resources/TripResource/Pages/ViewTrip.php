@@ -54,27 +54,18 @@ class ViewTrip extends ViewRecord
                 ->schema(function ($record) {
                     $entries = [];
                     
-                    // Buat entry untuk setiap trip passenger
-                    foreach ($record->tripPassengers as $index => $passenger) {
+                    // Create entry for each ticket
+                    foreach ($record->ticket as $index => $ticket) {
                         $entries[] = Infolists\Components\Grid::make([$index])
                             ->schema([
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.hotel.name")
+                                Infolists\Components\TextEntry::make("ticket.{$index}.hotel.name")
                                     ->label('Hotel'),
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.number_of_passengers")
+                                Infolists\Components\TextEntry::make("ticket.{$index}.number_of_passengers")
                                     ->label('Passengers'),
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.excursion_charge")
-                                    ->label('Excursion ($)')
+                                Infolists\Components\TextEntry::make("ticket.{$index}.total_rf")
+                                    ->label('Total Amount ($)')
                                     ->money('USD'),
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.boat_charge")
-                                    ->label('Boat ($)')
-                                    ->money('USD'),
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.charter_charge")
-                                    ->label('Charter ($)')
-                                    ->money('USD'),
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.total_usd")
-                                    ->label('Total (USD)')
-                                    ->money('USD'),
-                                Infolists\Components\TextEntry::make("tripPassengers.{$index}.payment_status")
+                                Infolists\Components\TextEntry::make("ticket.{$index}.payment_status")
                                     ->label('Payment Status')
                                     ->badge()
                                     ->color(fn (string $state): string => 
@@ -84,14 +75,19 @@ class ViewTrip extends ViewRecord
                                             default => 'gray',
                                         }
                                     ),
+                                Infolists\Components\TextEntry::make("ticket.{$index}.payment_method")
+                                    ->label('Payment Method'),
+                                Infolists\Components\IconEntry::make("ticket.{$index}.is_hotel_ticket")
+                                    ->label('Hotel Ticket')
+                                    ->boolean(),
                             ])
-                            ->columns(4);
+                            ->columns(3);
                     }
                     
                     if (empty($entries)) {
                         $entries[] = Infolists\Components\TextEntry::make('no_passengers')
                             ->label('')
-                            ->state('No passengers recorded for this trip.')
+                            ->state('No tickets recorded for this trip.')
                             ->columnSpanFull();
                     }
                     
@@ -100,20 +96,20 @@ class ViewTrip extends ViewRecord
 
                 Infolists\Components\Section::make('Summary')
                     ->schema([
-                        Infolists\Components\TextEntry::make('tripPassengers_count')
+                        Infolists\Components\TextEntry::make('hotels_count')
                             ->label('Total Hotels')
                             ->state(function ($record) {
-                                return $record->tripPassengers->count();
+                                return $record->ticket->count();
                             }),
                         Infolists\Components\TextEntry::make('total_passengers')
                             ->label('Total Passengers')
                             ->state(function ($record) {
-                                return $record->tripPassengers->sum('number_of_passengers');
+                                return $record->ticket->sum('number_of_passengers');
                             }),
-                        Infolists\Components\TextEntry::make('total_revenue_usd')
+                        Infolists\Components\TextEntry::make('total_revenue')
                             ->label('Total Revenue (USD)')
                             ->state(function ($record) {
-                                return $record->tripPassengers->sum('total_usd');
+                                return $record->ticket->sum('total_rf');
                             })
                             ->money('USD'),
                     ])

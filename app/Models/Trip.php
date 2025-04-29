@@ -29,6 +29,10 @@ class Trip extends Model
         'petrol_filled',
     ];
 
+    protected $casts = [
+        'date' => 'datetime',
+    ];
+
     public function tripType(): BelongsTo
     {
         return $this->belongsTo(TripType::class);
@@ -59,18 +63,18 @@ class Trip extends Model
     }
 
     /**
-     * Get all passenger records for this trip as ticket.
-     */
-    public function tripPassengers(): HasMany
-    {
-        return $this->hasMany(TripPassengers::class);
-    }
-
-    /**
      * Get the tickets associated with this trip.
      */
     public function ticket(): HasMany
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    /**
+     * Get the invoices associated with this trip.
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoices::class);
     }
 }

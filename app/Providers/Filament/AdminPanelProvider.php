@@ -139,6 +139,11 @@ class AdminPanelProvider extends PanelProvider
                             ->icon('heroicon-o-currency-dollar')
                             ->url(fn (): string => route('filament.admin.resources.invoices.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.invoices.*'));
+
+                        $financeItems[] = NavigationItem::make('Expenses')
+                            ->icon('heroicon-o-currency-dollar')
+                            ->url(fn (): string => route('filament.admin.resources.expenses.index'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.expenses.*'));
                     }
                     
                     if (!empty($financeItems)) {

@@ -38,6 +38,6 @@ class UpdateHandler extends Handlers {
 
         $model->save();
 
-        return static::sendSuccessResponse($model, "Successfully Update Resource");
+        return static::sendSuccessResponse($model, "Successfully Update Boat");
     }
 }
