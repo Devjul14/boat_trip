@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('trip_types', function (Blueprint $table) {
+        Schema::create('expense_types', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name', 100);
             $table->text('description')->nullable();
-            $table->decimal('default_excursion_charge', 10, 2)->default(0);
-            $table->decimal('default_boat_charge', 10, 2)->default(0);
-            $table->decimal('default_charter_charge', 10, 2)->default(0);
+            $table->string('code', 50)->unique();
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('trip_types');
+        Schema::dropIfExists('expense_types');
     }
 };

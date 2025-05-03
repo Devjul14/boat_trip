@@ -88,7 +88,7 @@ class TicketResource extends Resource
                     ->label('Total Passengers')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('price')
+                Tables\Columns\TextColumn::make('total_usd')
                     ->label('Price')                    
                     ->money('USD')
                     ->sortable(),

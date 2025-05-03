@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\TripTypeResource\Pages;
 
 use App\Filament\Resources\TripTypeResource;
-use Filament\Actions;
+use Filament\Pages\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListTripTypes extends ListRecords
@@ -17,3 +17,5 @@ class ListTripTypes extends ListRecords
         ];
     }
 }
+
+

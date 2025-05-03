@@ -3,21 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ExpenseTypeResource\Pages;
-use App\Filament\Resources\ExpenseTypeResource\RelationManagers;
 use App\Models\ExpenseType;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ExpenseTypeResource extends Resource
 {
     protected static ?string $model = ExpenseType::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-cash';
 
     public static function form(Form $form): Form
     {
@@ -25,7 +22,11 @@ class ExpenseTypeResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(100),
+                Forms\Components\Textarea::make('description')
+                    ->maxLength(65535),
+                Forms\Components\Toggle::make('active')
+                    ->default(true),
             ]);
     }
 
@@ -35,17 +36,18 @@ class ExpenseTypeResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('description')
+                    ->limit(50)
+                    ->searchable(),
+                Tables\Columns\IconColumn::make('active')
+                    ->boolean(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('active')
+                    ->options([
+                        '1' => 'Active',
+                        '0' => 'Inactive',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -55,13 +57,6 @@ class ExpenseTypeResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
     }
 
     public static function getPages(): array

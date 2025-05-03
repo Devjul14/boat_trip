@@ -67,7 +67,7 @@ class InvoicesResource extends Resource
                 $trip->load('tripType');
                 
                 // Get passenger count for this trip and hotel
-                $passengerCount = $trip->tripPassengers()
+                $passengerCount = $trip->ticket()
                     ->where('hotel_id', $hotel->id)
                     ->sum('number_of_passengers');
                 
@@ -415,7 +415,7 @@ class InvoicesResource extends Resource
                         }
 
                         // Check if any passengers on this trip have already paid in cash
-                        $paidCashPassengers = $trip->tripPassengers()
+                        $paidCashPassengers = $trip->ticket()
                         ->where('payment_status', 'paid')
                         ->where('payment_method', 'cash')
                         ->count();

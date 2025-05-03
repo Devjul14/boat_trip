@@ -9,6 +9,7 @@ use App\Models\TripPassengers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Ticket extends Model
 {
@@ -41,6 +42,16 @@ class Ticket extends Model
     public function trip(): BelongsTo
     {
         return $this->belongsTo(Trip::class);
+    }
+
+    /**
+     * Get the expenses associated with the ticket.
+     * Many-to-many relationship
+     */
+    public function expenses(): BelongsToMany
+    {
+        return $this->belongsToMany(Expenses::class, 'expense_ticket', 'ticket_id', 'expense_id')
+                    ->withTimestamps();
     }
 
     

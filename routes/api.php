@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Api\CompletedTripController;
+use App\Http\Controllers\Api\CancelTripController;
 use App\Http\Controllers\Api\SelfController;
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,7 @@ Route::middleware('auth:sanctum')->post('/logout', [LoginController::class, 'log
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/trips/{id}/complete', [CompletedTripController::class, 'completeTrip']);
+    Route::post('/trips/{id}/cancel', [CancelTripController::class, 'cancelTrip']);
     Route::get('/user/profile', [SelfController::class, 'viewSelf']);
     Route::put('/user/updateProfile', [SelfController::class, 'updateSelf']);
 });

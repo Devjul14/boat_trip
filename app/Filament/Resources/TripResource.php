@@ -7,6 +7,7 @@ use App\Filament\Resources\TripResource\RelationManagers;
 use App\Models\Trip;
 use App\Models\Hotel;
 use App\Models\TripType;
+use App\Models\ExpenseType;
 use App\Models\Boat;
 use App\Models\User;
 use App\Models\Ticket;
@@ -24,6 +25,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Repeater;
+use Illuminate\Support\Facades\DB;
 
 class TripResource extends Resource
 {
@@ -40,7 +42,7 @@ class TripResource extends Resource
      * @return void
      */
 
-    public static function form(Form $form): Form
+ public static function form(Form $form): Form
     {
         return $form
             ->schema([
@@ -80,7 +82,7 @@ class TripResource extends Resource
                     ])
                     ->columns(2),
                 
-                Forms\Components\Section::make('Hotels & Passengers')
+                Forms\Components\Section::make('Tickets')
                     ->schema([
                         Forms\Components\Repeater::make('hotels')
                             ->relationship('ticket')
@@ -109,10 +111,6 @@ class TripResource extends Resource
                                     ->required()
                                     ->default(1)
                                     ->minValue(1),
-                                Forms\Components\TextInput::make('price')
-                                    ->label('Price ($)')
-                                    ->numeric()
-                                    ->required(),
                                 Forms\Components\Select::make('payment_status')
                                     ->label('Payment Status')
                                     ->options([
@@ -136,46 +134,31 @@ class TripResource extends Resource
                             ->defaultItems(1)
                             ->createItemButtonLabel('Add Hotel'),
                     ]),
-                Forms\Components\Section::make('Fuel & Remarks')
-                    ->schema([
-                        Forms\Components\TextInput::make('petrol_consumed')
-                            ->label('Petrol Consumed (liters)')
-                            ->numeric()
-                            ->default(0.00),
-                        Forms\Components\TextInput::make('petrol_filled')
-                            ->label('Petrol Filled (liters)')
-                            ->numeric()
-                            ->default(0.00),
-                        Forms\Components\Textarea::make('remarks')
-                            ->columnSpan(2),
-                    ])
-                    ->columns(2),
-                
-                Forms\Components\Section::make('Expenses')
-                    ->schema([
-                        Repeater::make('expenses')
-                            ->relationship('expenses')
-                            ->schema([
-                                Forms\Components\Select::make('expense_type')
-                                    ->label('Expense Type')
-                                    ->relationship('expenseType', 'name')
-                                    ->required()
-                                    ->searchable()
-                                    ->preload(),
-                                Forms\Components\TextInput::make('amount')
-                                    ->label('Amount')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0.00),
-                                Forms\Components\Textarea::make('notes')
-                                    ->label('Notes')
-                                    ->columnSpan(2),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(0)
-                            ->addActionLabel('Add Expense')
-                            ->collapsible(),
-                    ]),
+                    Forms\Components\Section::make('Fuel & Remarks')
+                        ->schema([
+                            Forms\Components\TextInput::make('petrol_consumed')
+                                ->label('Petrol Consumed (liters)')
+                                ->numeric()
+                                ->default(0.00),
+                            Forms\Components\TextInput::make('petrol_filled')
+                                ->label('Petrol Filled (liters)')
+                                ->numeric()
+                                ->default(0.00),
+                            Forms\Components\Textarea::make('remarks')
+                                ->columnSpan(2),
+                        ])
+                        ->columns(2),
+               
+                   Forms\Components\Section::make('Expenses')
+                        ->schema([
+                            Forms\Components\Select::make('expense_type')
+                                ->label('Expense Types')
+                                ->multiple() // Allow multiple selections
+                                ->options(ExpenseType::all()->pluck('name', 'id')) // Fetch expense types
+                                ->required() // Optional: make this field required
+                                ->searchable()
+                                ->preload(),
+                        ]),
             ]);
     }
 
@@ -184,7 +167,11 @@ class TripResource extends Resource
         return $table
             ->defaultSort('date', 'desc')
             ->modifyQueryUsing(function ($query) {
-                return $query->where('boatman_id', auth()->id());
+                if (!auth()->user()->hasRole(['Admin', 'Super Admin'])) {
+                    return $query->where('boatman_id', auth()->id());
+                }
+                
+                return $query;
             })
             ->columns([
                 Tables\Columns\TextColumn::make('date')
@@ -250,7 +237,7 @@ class TripResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                // Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('complete_trip')
                     ->label('Complete Trip')
@@ -287,7 +274,7 @@ class TripResource extends Resource
                                     continue;
                                 }
                                 
-                                $hotelName = Hotel::find($hotelId)->name ?? "Unknown Hotel";
+                                $hotelName = Hotel::find($hotelId)->name ?? "Walk In Trip";
                                 \Log::info("Processing hotel ID: {$hotelId} ({$hotelName})");
 
                                 // Get total passengers for this hotel
@@ -295,16 +282,16 @@ class TripResource extends Resource
                                 \Log::info("Total passengers for hotel {$hotelId}: {$totalPassengers}");
                                 
                                 // Calculate ticket price total
-                                $ticketPriceTotal = $tickets->sum('price');
-                                \Log::info("Total ticket price for hotel {$hotelId}: {$ticketPriceTotal}");
+                                // $ticketPriceTotal = $tickets->sum('price');
+                                // \Log::info("Total ticket price for hotel {$hotelId}: {$ticketPriceTotal}");
                                 
                                 // Calculate expense portion for this hotel (expense amount * passenger count)
-                                $expenseForThisHotel = $totalExpenseAmount * $totalPassengers;
-                                \Log::info("Expense amount for hotel {$hotelId}: {$expenseForThisHotel} (calculated as {$totalExpenseAmount} * {$totalPassengers})");
+                                $totalInvoice = $totalExpenseAmount * $totalPassengers;
+                                \Log::info("Expense amount for hotel {$hotelId}: {$totalInvoice} (calculated as {$totalExpenseAmount} * {$totalPassengers})");
                                 
                                 // Calculate total amount = ticket price + (expense * passengers)
-                                $totalAmount = $ticketPriceTotal + $expenseForThisHotel;
-                                \Log::info("Total invoice amount for hotel {$hotelId}: {$totalAmount} (ticket price: {$ticketPriceTotal} + expense: {$expenseForThisHotel})");
+                                // $totalAmount = $ticketPriceTotal + $expenseForThisHotel;
+                                // \Log::info("Total invoice amount for hotel {$hotelId}: {$totalAmount} (ticket price: {$ticketPriceTotal} + expense: {$expenseForThisHotel})");
                                 
                                 // Generate invoice number
                                 $lastInvoice = Invoices::orderBy('id', 'desc')->first();
@@ -322,7 +309,7 @@ class TripResource extends Resource
                                     'year' => date('Y'),
                                     'issue_date' => $issueDate,
                                     'due_date' => $dueDate,
-                                    'total_amount' => $totalAmount,
+                                    'total_amount' => $totalInvoice,
                                     'status' => 'draft',
                                 ]);
                                 \Log::info("Created invoice ID: {$invoice->id} for hotel {$hotelId}");
@@ -360,9 +347,11 @@ class TripResource extends Resource
                     ->modalContent(function (Trip $record) {
                         $tickets = $record->ticket()->with('hotel')->get()->map(function ($ticket) {
                             return [
+                                'id' => $ticket->id,
                                 'hotel' => $ticket->hotel->name ?? 'Walk-in',
                                 'passengers' => $ticket->number_of_passengers,
-                                'total_rf' => $ticket->total_rf,
+                                'price' => $ticket->price,
+                                'total_usd' => $ticket->total_usd,
                             ];
                         });
                         
@@ -488,4 +477,7 @@ class TripResource extends Resource
             'edit' => Pages\EditTrip::route('/{record}/edit'),
         ];
     }
+
+    
+
 }

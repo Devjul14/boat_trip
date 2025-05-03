@@ -6,6 +6,7 @@ use App\Models\Trip;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Expenses extends Model
 {
@@ -13,10 +14,16 @@ class Expenses extends Model
 
     protected $fillable = [
         'trip_id',
+        'ticket_id',
         'expense_type',
         'amount',
         'notes',
     ];
+
+    public function expenseType()
+    {
+        return $this->belongsTo(ExpenseType::class,'expense_type');
+    }
     
     /**
      * Get the trip that owns the expense.
@@ -26,8 +33,15 @@ class Expenses extends Model
         return $this->belongsTo(Trip::class);
     }
 
-    public function expenseType()
+    /**
+     * Get the tickets associated with the expense.
+     * Many-to-many relationship
+     */
+    public function tickets(): BelongsToMany
     {
-        return $this->belongsTo(ExpenseType::class, 'id');
+        return $this->belongsToMany(Ticket::class, 'expense_ticket', 'expense_id', 'ticket_id')
+                    ->withTimestamps();
     }
+
+    
 }

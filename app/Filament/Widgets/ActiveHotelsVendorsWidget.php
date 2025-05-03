@@ -29,8 +29,8 @@ class ActiveHotelsVendorsWidget extends BaseWidget
         // Get hotels with recent trips (last 30 days)
         $hotelsWithRecentTrips = Hotel::whereIn('id', function($query) use ($thirtyDaysAgo, $now) {
             $query->select('hotel_id')
-                ->from('trip_passengers')
-                ->join('trips', 'trips.id', '=', 'trip_passengers.trip_id')
+                ->from('tickets')
+                ->join('trips', 'trips.id', '=', 'tickets.trip_id')
                 ->whereDate('trips.date', '>=', $thirtyDaysAgo)
                 ->whereDate('trips.date', '<=', $now)
                 ->distinct();
@@ -39,8 +39,8 @@ class ActiveHotelsVendorsWidget extends BaseWidget
         // Get hotels with upcoming trips (next 30 days)
         $hotelsWithUpcomingTrips = Hotel::whereIn('id', function($query) use ($now, $thirtyDaysAhead) {
             $query->select('hotel_id')
-                ->from('trip_passengers')
-                ->join('trips', 'trips.id', '=', 'trip_passengers.trip_id')
+                ->from('tickets')
+                ->join('trips', 'trips.id', '=', 'tickets.trip_id')
                 ->whereDate('trips.date', '>', $now)
                 ->whereDate('trips.date', '<=', $thirtyDaysAhead)
                 ->distinct();
@@ -49,8 +49,8 @@ class ActiveHotelsVendorsWidget extends BaseWidget
         // Get active hotels (with activity in last 60 days)
         $activeHotels = Hotel::whereIn('id', function($query) use ($thirtyDaysAgo, $thirtyDaysAhead) {
             $query->select('hotel_id')
-                ->from('trip_passengers')
-                ->join('trips', 'trips.id', '=', 'trip_passengers.trip_id')
+                ->from('tickets')
+                ->join('trips', 'trips.id', '=', 'tickets.trip_id')
                 ->whereDate('trips.date', '>=', $thirtyDaysAgo)
                 ->whereDate('trips.date', '<=', $thirtyDaysAhead)
                 ->distinct();
@@ -59,9 +59,9 @@ class ActiveHotelsVendorsWidget extends BaseWidget
         $activePercentage = $totalHotels > 0 ? round(($activeHotels / $totalHotels) * 100) : 0;
         
         // Get top hotels by passenger count
-        $topHotelsSubquery = DB::table('trip_passengers')
+        $topHotelsSubquery = DB::table('tickets')
             ->select('hotel_id', DB::raw('COUNT(*) as passenger_count'))
-            ->join('trips', 'trips.id', '=', 'trip_passengers.trip_id')
+            ->join('trips', 'trips.id', '=', 'tickets.trip_id')
             ->whereDate('trips.date', '>=', $thirtyDaysAgo)
             ->groupBy('hotel_id')
             ->orderByDesc('passenger_count')

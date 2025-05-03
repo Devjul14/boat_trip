@@ -30,7 +30,7 @@ class CreateHandler extends Handlers {
     {
         $model = new (static::getModel());
         $data = $request->all();
-        $data['boatman_id'] = Auth::id();
+        $data['boatman_id'] = auth('api')->id();
         $model->fill($data);
 
         $model->save();

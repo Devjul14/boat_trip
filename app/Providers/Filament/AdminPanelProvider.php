@@ -163,6 +163,11 @@ class AdminPanelProvider extends PanelProvider
                             ->icon('heroicon-o-tag')
                             ->url(fn (): string => route('filament.admin.resources.trip-types.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.trip-types.*')),
+
+                        NavigationItem::make('Expense Types')
+                            ->icon('heroicon-o-tag')
+                            ->url(fn (): string => route('filament.admin.resources.expense-types.index'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.expense-types.*')),
                         
                         NavigationItem::make('Boats')
                             ->icon('heroicon-o-truck')
