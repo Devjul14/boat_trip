@@ -25,16 +25,9 @@ class CreateTicketRequest extends FormRequest
             'trip_id' => 'required|exists:trips,id',
             'hotel_id' => 'nullable|exists:hotels,id',
             'number_of_passengers' => 'required|integer|min:1',
-            'price' => 'required|numeric|min:0',
             'is_hotel_ticket' => 'boolean',
             'payment_method' => 'required|string',
             'payment_status' => 'required|string',
-            
-            // Expense related fields 
-            'expenses' => 'nullable|array',
-            'expenses.*.expense_type' => 'required',
-            'expenses.*.amount' => 'required|numeric|min:0',
-            'expenses.*.notes' => 'nullable|string|max:255',
         ];
     }
 }

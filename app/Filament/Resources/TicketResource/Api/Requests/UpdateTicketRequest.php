@@ -26,7 +26,6 @@ class UpdateTicketRequest extends FormRequest
 			'hotel_id' => 'required',
 			'is_hotel_ticket' => 'nullable',
 			'number_of_passengers' => 'required',
-			'total_rf' => 'required',
 			'payment_method' => 'required',
 			'payment_status' => 'required',
 

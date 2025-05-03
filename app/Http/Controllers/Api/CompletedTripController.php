@@ -18,8 +18,6 @@ class CompletedTripController extends Controller
             
             // Find the trip by ID
             $trip = Trip::findOrFail($id);
-            $trip_id = $trip->id;
-            Log::info("API: Found trip with bill number: {$trip->bill_number}");
             
             // Check if trip is already completed
             if ($trip->status === 'completed') {
@@ -41,80 +39,77 @@ class CompletedTripController extends Controller
             
             // Update trip status
             $trip->update(['status' => 'completed']);
-            Log::info("API: Updated trip {$id} status to 'completed'");
+            Log::info("API: Trip status updated to 'completed'");
             
             // Generate invoices for each hotel in the trip
-            $tickets = $trip->ticket()->get()->groupBy('hotel_id');
-            Log::info("API: Found " . count($tickets) . " hotels for trip {$id}");
+            $ticketsByHotel = $trip->ticket()->where('is_hotel_ticket', true)->get()->groupBy('hotel_id');
+            Log::info("API: Found " . count($ticketsByHotel) . " hotels with tickets");
+            
+            $invoiceCount = 0;
+            $ticketCount = 0;
+            
+            // Calculate issue date from trip date
+            $issueDate = $trip->date;
+            $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
+            Log::info("API: Issue date: {$issueDate}, Due date: {$dueDate}");
+            
+            // Get all expenses for this trip
+            $tripExpenses = $trip->expenses()->get();
+            $totalExpenseAmount = $tripExpenses->sum('amount');
+            Log::info("API: Total expense amount for trip: {$totalExpenseAmount}");
             
             $invoices = [];
             
-            foreach ($tickets as $hotelId => $hotelTickets) {
+            foreach ($ticketsByHotel as $hotelId => $tickets) {
                 if (!$hotelId) {
-                    Log::info("API: Skipping null hotel_id for trip {$id}");
-                    continue; // Skip if hotel_id is null
+                    Log::info("API: Skipping hotel with null ID");
+                    continue;
                 }
                 
-                Log::info("API: Processing hotel ID: {$hotelId} with " . count($hotelTickets) . " passenger records");
+                $hotelName = Hotel::find($hotelId)->name ?? "Walk In Trip";
+                Log::info("API: Processing hotel ID: {$hotelId} ({$hotelName})");
+
+                // Get total passengers for this hotel
+                $totalPassengers = $tickets->sum('number_of_passengers');
+                Log::info("API: Total passengers for hotel {$hotelId}: {$totalPassengers}");
                 
-                // Calculate total amount based on tripType default charges
-                $totalAmount = 0;
-                foreach ($hotelTickets as $ticket) {
-                    $perPersonCharge = 0;
-                    
-                    // Add default excursion, boat, and charter charges from trip type
-                    if ($trip->tripType) {
-                        $perPersonCharge += $trip->tripType->default_excursion_charge ?? 0;
-                        $perPersonCharge += $trip->tripType->default_boat_charge ?? 0;
-                        $perPersonCharge += $trip->tripType->default_charter_charge ?? 0;
-                    }
-                    
-                    // Multiply by number of passengers
-                    $ticketTotal = $perPersonCharge * $ticket->number_of_passengers;
-                    $totalAmount += $ticketTotal;
-                }
-                
-                Log::info("API: Calculated total amount for hotel {$hotelId}: {$totalAmount}");
+                // Calculate expense portion for this hotel (expense amount * passenger count)
+                $totalInvoice = $totalExpenseAmount * $totalPassengers;
+                Log::info("API: Expense amount for hotel {$hotelId}: {$totalInvoice} (calculated as {$totalExpenseAmount} * {$totalPassengers})");
                 
                 // Generate invoice number
                 $lastInvoice = Invoices::orderBy('id', 'desc')->first();
                 $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 8, 3)) : 0;
                 $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
                 $invoiceNumber = 'AK/' . date('Y') . '/' . $newNumber;
-                
                 Log::info("API: Generated invoice number: {$invoiceNumber}");
-                
-                // Get current month and year
-                $currentMonth = date('F'); 
-                $currentYear = date('Y');
-                $currentDate = date('d-m-y');
-                
-                // Create invoice record
+            
+                // Create invoice record with trip_id, issue_date, and due_date
                 $invoice = Invoices::create([
                     'invoice_number' => $invoiceNumber,
                     'hotel_id' => $hotelId,
-                    'trip_id' => $trip_id,
-                    'ticket_id' => $ticket->id, 
-                    'month' => $currentMonth,
-                    'year' => $currentYear,
-                    'issue_date' => $currentDate,
-                    'due_date' => $currentDate,
-                    'total_amount' => $totalAmount,
+                    'trip_id' => $trip->id,
+                    'month' => date('F'),
+                    'year' => date('Y'),
+                    'issue_date' => $issueDate,
+                    'due_date' => $dueDate,
+                    'total_amount' => $totalInvoice,
                     'status' => 'draft',
                 ]);
-                
                 Log::info("API: Created invoice ID: {$invoice->id} for hotel {$hotelId}");
+
+                $invoiceCount++;
                 $invoices[] = $invoice->invoice_number;
             }
             
-            Log::info("API: Trip completion process successful for trip {$id}. Generated " . count($invoices) . " invoices");
+            Log::info("API: Trip completion process finished. Generated {$invoiceCount} invoices");
             
             return response()->json([
                 'success' => true,
-                'message' => 'Trip completed successfully',
+                'message' => "Trip completed successfully. Generated {$invoiceCount} invoice(s).",
                 'data' => [
                     'trip_id' => $trip->id,
-                    'bill_number' => $trip->bill_number,
+                    'bill_number' => $trip->bill_number ?? null,
                     'invoices' => $invoices
                 ]
             ], 200);
