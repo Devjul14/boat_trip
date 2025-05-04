@@ -10,7 +10,7 @@
             line-height: 1.5;
             color: #333;
             margin: 0;
-            padding: 0;
+            padding: 20px;
         }
         .header {
             text-align: center;
@@ -36,9 +36,25 @@
             font-weight: normal;
             color: #7f8c8d;
         }
+        h3 {
+            font-size: 18px;
+            margin: 30px 0 15px;
+            color: #2c3e50;
+        }
         .invoice-details {
             width: 100%;
             margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .invoice-details .hotel-info {
+            width: 60%;
+        }
+        .invoice-details .invoice-info {
+            width: 35%;
+        }
+        .invoice-details table {
+            width: 100%;
         }
         .invoice-details td {
             padding: 5px 0;
@@ -72,6 +88,7 @@
         .totals {
             float: right;
             width: 40%;
+            margin-top: 20px;
         }
         .totals table {
             width: 100%;
@@ -95,11 +112,13 @@
             font-size: 11px;
             color: #7f8c8d;
             text-align: center;
+            clear: both;
         }
-        .page-break {
-            page-break-after: always;
+        .section-divider {
+            border-top: 1px solid #ddd;
+            margin: 40px 0 20px;
+            clear: both;
         }
-        /* Additional classes for specific design elements */
         .stamp {
             text-transform: uppercase;
             font-size: 20px;
@@ -115,6 +134,25 @@
             top: 100px;
             right: 50px;
         }
+        .combined-table th, .combined-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .combined-table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #ddd;
+            text-align: left;
+        }
+        .combined-table tr.invoice-row {
+            background-color: #f9f9f9;
+        }
+        .combined-table tr.expense-row {
+            background-color: #ffffff;
+        }
+        .combined-table .section-header {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -126,66 +164,88 @@
     </div>
 
     <div class="invoice-details">
-        <table>
-            <tr>
-                <td class="label">Hotel:</td>
-                <td>
-                    <strong>{{ $hotel->name }}</strong><br>
-                    {{ $hotel->address }}<br>
-                    @if($hotel->city || $hotel->state || $hotel->zip)
-                        {{ $hotel->city }}, {{ $hotel->state }} {{ $hotel->zip }}<br>
-                    @endif
-                    @if($hotel->country)
-                        {{ $hotel->country }}<br>
-                    @endif
-                    @if($hotel->phone)
-                        Phone: {{ $hotel->phone }}<br>
-                    @endif
-                    @if($hotel->email)
-                        Email: {{ $hotel->email }}
-                    @endif
-                </td>
-            </tr>
-            <tr>
-                <td class="label">Contact Person:</td>
-                <td>{{ $hotel->contact_person }}</td>
-            </tr>
-            <tr>
-                <td class="label">Invoice Date:</td>
-                <td>{{ $generatedDate }}</td>
-            </tr>
-            <tr>
-                <td class="label">Payment Terms:</td>
-                <td>Due upon receipt</td>
-            </tr>
-        </table>
+        <div class="hotel-info">
+            <table>
+                <tr>
+                    <td class="label">Hotel:</td>
+                    <td>
+                        <strong>{{ $hotel->name }}</strong><br>
+                        {{ $hotel->address }}<br>
+                        @if($hotel->city || $hotel->state || $hotel->zip)
+                            {{ $hotel->city }}, {{ $hotel->state }} {{ $hotel->zip }}<br>
+                        @endif
+                        @if($hotel->country)
+                            {{ $hotel->country }}<br>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">Contact:</td>
+                    <td>{{ $hotel->contact_person }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Phone:</td>
+                    <td>{{ $hotel->phone }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Email:</td>
+                    <td>{{ $hotel->email }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="invoice-info">
+            <table>
+                <tr>
+                    <td class="label">Invoice Date:</td>
+                    <td>{{ $generatedDate }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Payment Terms:</td>
+                    <td>Due upon receipt</td>
+                </tr>
+            </table>
+        </div>
     </div>
 
-    <h3>Invoice Items</h3>
-    <table class="items">
+    <h3>Detail Invoice</h3>
+    <table class="combined-table" style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr>
-                <th>Invoice #</th>
-                <th>Trip Date</th>
+                <th>Tnvoice</th>
                 <th>Trip Type</th>
-                <th>Passengers</th>
-                <th>Month/Year</th>
-                <th class="text-right">Amount</th>
-                <th>Due Date</th>
+                <th>Number Of Passengers</th>
+                <th>Expense Type</th>
+                <th class="text-right">Total</th>
             </tr>
         </thead>
         <tbody>
             @foreach($invoicesData as $invoice)
-            <tr>
-                <td>{{ $invoice['invoice_number'] }}</td>
-                <td>{{ $invoice['trip_date'] }}</td>
-                <td>{{ $invoice['trip_type'] }}</td>
-                <td class="text-center">{{ $invoice['passenger_count'] }}</td>
-                <td>{{ $invoice['month_year'] }}</td>
-                <td class="text-right">${{ number_format($invoice['amount'], 2) }}</td>
-                <td>{{ $invoice['due_date'] }}</td>
-            </tr>
+                <tr class="invoice-row">
+                    <td rowspan="2">
+                        <strong>Invoice:</strong> {{ $invoice['invoice_number'] }}<br>
+                        {{ date('d-m-Y', strtotime($invoice['trip_date'])) }}
+                    </td>
+                    <td rowspan="2">{{ $invoice['trip_type'] }}</td>
+                    <td rowspan="2" class="text-center">{{ $invoice['passenger_count'] ?? '--' }}</td>
+                    
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <table class="combined-table" style="width: 100%; border-collapse: collapse; margin: 0;">
+                            @foreach($expensesData as $expense)
+                                @if($expense['trip_date'] == $invoice['trip_date'] && $expense['trip_type'] == $invoice['trip_type'])
+                                <tr>
+                                    <td style="border: none; padding: 4px 8px;">{{ $expense['expense_type'] }}</td>
+                                    <td style="border: none; padding: 4px 8px; text-align: right;">${{ number_format($expense['amount'], 2) }}</td>
+                                </tr>
+                                @endif
+                            @endforeach
+                        </table>
+                    </td>
+                </tr>
+                <tr><td colspan="5" style="border-bottom: 2px solid #ddd; height: 10px;"></td></tr>
             @endforeach
+        </tbody>
         </tbody>
     </table>
 

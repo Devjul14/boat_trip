@@ -109,7 +109,7 @@ class CompletedTripController extends Controller
                 'message' => "Trip completed successfully. Generated {$invoiceCount} invoice(s).",
                 'data' => [
                     'trip_id' => $trip->id,
-                    'bill_number' => $trip->bill_number ?? null,
+                    'date' => $trip->date,
                     'invoices' => $invoices
                 ]
             ], 200);

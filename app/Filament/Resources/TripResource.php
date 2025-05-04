@@ -150,15 +150,33 @@ class TripResource extends Resource
                         ->columns(2),
                
                    Forms\Components\Section::make('Expenses')
-                        ->schema([
-                            Forms\Components\Select::make('expense_type')
-                                ->label('Expense Types')
-                                ->multiple() // Allow multiple selections
-                                ->options(ExpenseType::all()->pluck('name', 'id')) // Fetch expense types
-                                ->required() // Optional: make this field required
-                                ->searchable()
-                                ->preload(),
-                        ]),
+    ->schema([
+        Forms\Components\Select::make('expense_type')
+            ->label('Expense Types')
+            ->multiple() // Allow multiple selections
+            ->options(ExpenseType::all()->pluck('name', 'id')) // Fetch expense types
+            ->required() // Optional: make this field required
+            ->searchable()
+            ->preload()
+            // Gunakan custom method untuk mengambil data
+            ->afterStateHydrated(function ($component, $state, $record) {
+                if ($record && $record->exists) {
+                    // Menggunakan nested relationship seperti yang Anda sebutkan
+                    $expenseTypeIds = $record->expenses()
+                        ->where('trip_id', $record->id)
+                        ->with('expenseType')
+                        ->get()
+                        ->flatMap(function ($expense) {
+                            return $expense->expenseType->pluck('id');
+                        })
+                        ->unique()
+                        ->toArray();
+                    
+                    $component->state($expenseTypeIds);
+                }
+            })
+            ->dehydrated(true),
+    ]),
             ]);
     }
 

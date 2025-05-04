@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoicesResource\Pages;
 use App\Filament\Resources\InvoicesResource\RelationManagers;
+use App\Models\ExpenseType;
+use App\Models\Expenses;
 use App\Models\Invoices;
 use App\Models\Ticket;
 use App\Models\Hotel;
@@ -42,93 +44,124 @@ class InvoicesResource extends Resource
      * @return string Path to the generated PDF file
      */
     protected static function generateInvoicePDF(Hotel $hotel, Collection $invoices): string
-    {
-        try {
-            // Prepare data for PDF
-            $data = [
-                'hotel' => $hotel,
-                'invoices' => $invoices,
-                'totalAmount' => $invoices->sum('total_amount'),
-                'generatedDate' => now()->format('Y-m-d'),
-            ];
+{
+    try {
+        // Prepare data for PDF
+        $data = [
+            'hotel' => $hotel,
+            'invoices' => $invoices,
+            'totalAmount' => $invoices->sum('total_amount'),
+            'generatedDate' => now()->format('d-m-Y'),
+        ];
 
-            // Process invoices to include trip information
-            $invoicesData = [];
-            $totalAmount = 0;
+        // Process invoices to include trip information
+        $invoicesData = [];
+        $expensesData = []; // Initialize expenses data array
+        $totalAmount = 0;
+        
+        foreach ($invoices as $invoice) {
+            // Get associated trip
+            $trip = Trip::find($invoice->trip_id);
+            if (!$trip) {
+                continue;
+            }
             
-            foreach ($invoices as $invoice) {
-                // Get associated trip
-                $trip = Trip::find($invoice->trip_id);
-                if (!$trip) {
+            // Load trip type
+            $trip->load('tripType');
+            
+            // Get passenger count for this trip and hotel
+            $passengerCount = $trip->ticket()
+                ->where('hotel_id', $hotel->id)
+                ->sum('number_of_passengers');
+            
+            // Calculate the amount
+            $amount = (float)$invoice->total_amount;
+            $totalAmount += $amount;
+            
+            // Add to invoices data array
+            $invoicesData[] = [
+                'invoice_number' => $invoice->invoice_number,
+                'trip_date' => $trip->date,
+                'trip_type' => $trip->tripType->name ?? 'N/A',
+                'passenger_count' => $passengerCount,
+                'month_year' => "{$invoice->month}/{$invoice->year}",
+                'amount' => $amount,
+                'due_date' => $invoice->due_date
+            ];
+            
+            // Get expenses for this trip that are associated with this hotel
+            $tickets = Ticket::where('trip_id', $trip->id)
+                ->where('hotel_id', $hotel->id)
+                ->pluck('id');
+                
+            // Get expenses for these tickets
+            $expenses = Expenses::whereIn('ticket_id', $tickets)->get();
+            
+            // Get expense details without recalculating
+            foreach ($expenses as $expense) {
+                // Get ticket and expense type information
+                $ticket = Ticket::find($expense->ticket_id);
+                $expenseType = ExpenseType::find($expense->expense_type);
+                
+                if (!$ticket || !$expenseType) {
                     continue;
                 }
                 
-                // Load trip type
-                $trip->load('tripType');
-                
-                // Get passenger count for this trip and hotel
-                $passengerCount = $trip->ticket()
-                    ->where('hotel_id', $hotel->id)
-                    ->sum('number_of_passengers');
-                
-                // Calculate the amount
-                $amount = (float)$invoice->total_amount;
-                $totalAmount += $amount;
-                
-                // Add to invoices data array
-                $invoicesData[] = [
-                    'invoice_number' => $invoice->invoice_number,
+                // Add to expenses data array - using stored values
+                $expensesData[] = [
                     'trip_date' => $trip->date,
                     'trip_type' => $trip->tripType->name ?? 'N/A',
-                    'passenger_count' => $passengerCount,
-                    'month_year' => "{$invoice->month}/{$invoice->year}",
-                    'amount' => $amount,
-                    'due_date' => $invoice->due_date
+                    'expense_type' => $expenseType->name,
+                    'passenger_count' => $ticket->number_of_passengers ?? 1,
+                    'amount' => $expense->amount, // Use stored amount directly
+                    'notes' => $expense->notes
                 ];
             }
-            
-            // Update data with processed invoice information
-            $data['invoicesData'] = $invoicesData;
-            $data['totalAmount'] = $totalAmount;
-            
-            // Generate PDF using the invoice PDF template
-            $pdf = PDF::loadView('pdfs.invoice-summary', $data);
-            
-            // Set PDF options if needed
-            $pdf->setPaper('a4', 'portrait');
-            
-            // Prepare filename - ensure it's clean and has proper extension
-            $baseFileName = Str::slug("invoices_{$hotel->name}_" . date('Y-m-d_His'));
-            $fileName = $baseFileName . '.pdf';
-            
-            // Make sure the directory exists
-            $directory = storage_path('app/public/pdf');
-            if (!file_exists($directory)) {
-                mkdir($directory, 0755, true);
-            }
-            
-            // Full file path
-            $filePath = $directory . '/' . $fileName;
-            \Illuminate\Support\Facades\Log::info("PDF file path: {$filePath}");
-            
-            // Save the PDF file
-            $pdf->save($filePath);
-            
-            // Verify the file was created
-            if (!file_exists($filePath)) {
-                throw new \Exception("Failed to create PDF file at: {$filePath}");
-            }
-            
-            $fileSize = filesize($filePath);
-            \Illuminate\Support\Facades\Log::info("PDF file generated successfully: {$filePath} (Size: {$fileSize} bytes)");
-            
-            return $filePath;
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Error generating PDF file: {$e->getMessage()}");
-            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
-            throw $e;
         }
+        
+        // Update data with processed invoice and expense information
+        $data['invoicesData'] = $invoicesData;
+        $data['expensesData'] = $expensesData; // Add expenses data to the view data
+        $data['totalAmount'] = $totalAmount;
+        
+        // Generate PDF using the invoice PDF template
+        $pdf = PDF::loadView('pdfs.invoice-summary', $data);
+        
+        // Set PDF options if needed
+        $pdf->setPaper('a4', 'portrait');
+        
+        // Prepare filename - ensure it's clean and has proper extension
+        $baseFileName = Str::slug("invoices_{$hotel->name}_" . date('Y-m-d_His'));
+        $fileName = $baseFileName . '.pdf';
+        
+        // Make sure the directory exists
+        $directory = storage_path('app/public/pdf');
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+        
+        // Full file path
+        $filePath = $directory . '/' . $fileName;
+        \Illuminate\Support\Facades\Log::info("PDF file path: {$filePath}");
+        
+        // Save the PDF file
+        $pdf->save($filePath);
+        
+        // Verify the file was created
+        if (!file_exists($filePath)) {
+            throw new \Exception("Failed to create PDF file at: {$filePath}");
+        }
+        
+        $fileSize = filesize($filePath);
+        \Illuminate\Support\Facades\Log::info("PDF file generated successfully: {$filePath} (Size: {$fileSize} bytes)");
+        
+        return $filePath;
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error("Error generating PDF file: {$e->getMessage()}");
+        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+        throw $e;
     }
+}
 
     /**
      * Send invoice email to hotel contact person with PDF attachment
