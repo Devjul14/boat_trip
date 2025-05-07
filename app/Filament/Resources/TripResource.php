@@ -255,7 +255,7 @@ class TripResource extends Resource
                     }),
             ])
             ->actions([
-                // Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('complete_trip')
                     ->label('Complete Trip')
@@ -357,28 +357,8 @@ class TripResource extends Resource
                     ->modalSubmitActionLabel('Yes, complete trip')
                     ->visible(fn (Trip $record) => $record->status === 'scheduled'),
 
-                Tables\Actions\Action::make('view_tickets')
-                    ->label('View Tickets')
-                    ->icon('heroicon-o-ticket')
-                    ->color('warning')
-                    ->modalHeading(fn (Trip $record) => "Ticket Details")
-                    ->modalContent(function (Trip $record) {
-                        $tickets = $record->ticket()->with('hotel')->get()->map(function ($ticket) {
-                            return [
-                                'id' => $ticket->id,
-                                'hotel' => $ticket->hotel->name ?? 'Walk-in',
-                                'passengers' => $ticket->number_of_passengers,
-                                'price' => $ticket->price,
-                                'total_usd' => $ticket->total_usd,
-                            ];
-                        });
-                        
-                        return view('filament.modals.trip-tickets', [
-                            'tickets' => $tickets,
-                            'trip' => $record,
-                        ]);
-                    }),
-            ])
+                
+                ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

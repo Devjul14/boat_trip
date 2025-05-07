@@ -23,11 +23,12 @@ class TripType extends Model
     ];
 
    public function expenseTypes(): BelongsToMany
-{
-    return $this->belongsToMany(ExpenseType::class, 'expense_type_trip_types')
-        ->withPivot('default_charge', 'is_master', 'trip_id')
-        ->withTimestamps();
-}
+    {
+        return $this->belongsToMany(ExpenseType::class, 'expense_type_trip_types')
+            ->withPivot('default_charge', 'is_master')
+            ->wherePivot('is_master', true)
+            ->wherePivotNull('trip_id');
+    }
 
     /**
      * Get only the master default expense types for this trip type.
@@ -41,20 +42,49 @@ class TripType extends Model
 
   
 
-    /**
-     * Get the default charge for a specific expense type.
-     */
-    public function getDefaultChargeFor(int $expenseTypeId): float
+    public function defaultExpenseTypes(): BelongsToMany
     {
-        $relation = $this->masterExpenseTypes()
-            ->wherePivot('expense_type_id', $expenseTypeId)
-            ->first();
+        return $this->belongsToMany(ExpenseType::class, 'expense_type_trip_types')
+            ->withPivot(['default_charge'])
+            ->wherePivot('is_master', true)
+            ->wherePivot('trip_id', null)
+            ->withTimestamps();
+    }
 
-        if (!$relation) {
-            return 0;
+    /**
+     * Save default charges for expense types
+     * 
+     * @param array $charges Key-value pairs of expense_type_id => charge_amount
+     * @return void
+     */
+    public function saveDefaultCharges(array $charges): void
+    {
+        DB::beginTransaction();
+        
+        try {
+            foreach ($charges as $expenseTypeId => $charge) {
+                $normalizedCharge = ($charge === null || $charge === '') ? 0.00 : (float) $charge;
+                
+                DB::table('expense_type_trip_types')->updateOrInsert(
+                    [
+                        'trip_type_id' => $this->id,
+                        'expense_type_id' => $expenseTypeId,
+                        'is_master' => true,
+                        'trip_id' => null,
+                    ],
+                    [
+                        'default_charge' => $normalizedCharge,
+                        'updated_at' => now(),
+                        'created_at' => DB::raw('IFNULL(created_at, NOW())'),
+                    ]
+                );
+            }
+            
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        return $relation->pivot->default_charge;
     }
 
     protected function image(): Attribute

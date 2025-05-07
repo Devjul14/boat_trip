@@ -71,7 +71,7 @@ class TicketRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('number_of_passengers')
                     ->label('Number of Passengers')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('price')
+                Tables\Columns\TextColumn::make('total_usd')
                     ->label('Price')
                     ->money('USD')
                     ->sortable(),
