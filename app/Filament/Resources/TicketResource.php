@@ -22,9 +22,21 @@ class TicketResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public $trip_id = null;
+
+public function mount()
+{
+    // Jika data edit, pastikan $this->trip_id sudah ada nilainya
+    $this->form->fill([
+        'trip_id' => $this->trip_id,
+        // properti lain juga bisa diisi di sini
+    ]);
+}
+
+
     public static function form(Form $form): Form
-    {
-        return $form
+{
+    return $form
         ->schema([
             Forms\Components\Select::make('trip_id')
                 ->label('Trip')
@@ -38,29 +50,35 @@ class TicketResource extends Resource
                 )
                 ->required()
                 ->searchable()
-                ->live() // bikin reactive
+                ->dehydrated(true)
+                ->live()
+                ->default(fn ($get) => $get('trip_id')) // Menyimpan nilai trip_id
                 ->afterStateUpdated(function ($state, callable $set, $livewire) {
                     if ($state) {
+                        // Pastikan trip_id tetap tersimpan di state dan perbarui nilai lainnya sesuai dengan trip yang dipilih
                         $livewire->loadExpenses($state);
                     } else {
-                        $set('expense_amounts', []);
+                        $set('expense_amounts', []); // Kosongkan expense_amounts jika trip_id dihapus
                     }
                 }),
+
+            Forms\Components\Toggle::make('is_hotel_ticket')
+                ->label('Is Hotel Ticket')
+                ->default(true),
+
             Forms\Components\Select::make('hotel_id')
                 ->label('Hotel')
                 ->options(Hotel::pluck('name', 'id'))
                 ->required()
                 ->searchable(),
+
             Forms\Components\TextInput::make('number_of_passengers')
                 ->label('Number of Passengers')
                 ->numeric()
                 ->required()
                 ->default(1)
                 ->minValue(1),
-            Forms\Components\TextInput::make('price')
-                ->label('Amount ($)')
-                ->numeric()
-                ->required(),
+
             Forms\Components\Select::make('payment_status')
                 ->label('Payment Status')
                 ->options([
@@ -69,6 +87,7 @@ class TicketResource extends Resource
                 ])
                 ->required()
                 ->default('pending'),
+
             Forms\Components\Select::make('payment_method')
                 ->label('Payment Method')
                 ->options([
@@ -78,31 +97,31 @@ class TicketResource extends Resource
                 ])
                 ->required()
                 ->default('cash'),
-            Forms\Components\Toggle::make('is_hotel_ticket')
-                ->label('Is Hotel Ticket')
-                ->default(true),
-                
+
+            
+
             Forms\Components\Section::make('Expense Details')
-            ->schema([
-                Forms\Components\Repeater::make('expense_amounts')
                 ->schema([
-                    Forms\Components\Hidden::make('expense_id'),
-                    Forms\Components\TextInput::make('expense_name')
-                        ->label('Expense Name')
-                        ->disabled()
-                        ->dehydrated(false),
-                    Forms\Components\TextInput::make('amount')
-                        ->label('Amount')
-                        ->numeric()
-                        ->required(),
+                    Forms\Components\Repeater::make('expense_amounts')
+                        ->schema([
+                            Forms\Components\Hidden::make('expense_id'),
+                            Forms\Components\TextInput::make('expense_name')
+                                ->label('Expense Name')
+                                ->disabled()
+                                ->dehydrated(false),
+                            Forms\Components\TextInput::make('amount')
+                                ->label('Amount')
+                                ->numeric()
+                                ->required(),
+                        ])
+                        ->disableItemCreation()
+                        ->disableItemDeletion()
+                        ->columns(2)
+                        ->columnSpanFull()
                 ])
-                ->disableItemCreation()
-                ->disableItemDeletion()
-                ->columns(2)
-                ->columnSpanFull()
-            ])
         ]);
-    }
+}
+
 
 
     public static function table(Table $table): Table
