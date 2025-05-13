@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TripTypeResource\Pages;
 use App\Filament\Resources\TripTypeResource\RelationManagers;
 use App\Models\TripType;
-use App\Models\ExpenseType;
+use App\Models\Expense;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -17,6 +17,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 
 class TripTypeResource extends Resource
 {
@@ -26,6 +27,7 @@ class TripTypeResource extends Resource
 
     public static function form(Form $form): Form
     {
+        \Log::info('Expense:', Expense::all()->toArray());
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
@@ -44,41 +46,44 @@ class TripTypeResource extends Resource
                         '4:3',
                         '1:1',
                     ]),
-                Forms\Components\Section::make('Default Charges')
-                    ->description('Set the default charges for each expense type')
-                    ->schema(function (TripType $record = null) {
-                        $expenseTypes = ExpenseType::where('active', true)->get();
-                        $fields = [];
 
-                        foreach ($expenseTypes as $expenseType) {
-                            $fields[] = Forms\Components\TextInput::make("charges.{$expenseType->id}")
-                                ->label($expenseType->name)
-                                ->prefix('$')
-                                ->numeric()
-                                ->default(0)
-                                ->step(0.01)
-                                ->hint("Default {$expenseType->name} charge")
-                                ->afterStateHydrated(function ($state, $component) use ($record, $expenseType) {
-                                    if ($record && $record->exists) {
-                                        $pivotValue = DB::table('expense_type_trip_types')
-                                            ->where('trip_type_id', $record->id)
-                                            ->where('expense_type_id', $expenseType->id)
-                                            ->where('is_master', true)
-                                            ->whereNull('trip_id')
-                                            ->value('default_charge');
-
-                                        if ($pivotValue !== null) {
-                                            $component->state($pivotValue);
-                                            Log::info("Loaded charge for {$expenseType->name}: {$pivotValue}");
-                                        }
-                                    }
-                                })
-                                ->reactive();
-                        }
-
-                        return $fields;
-                    })->columns(2),
+                Select::make('expenses')
+                ->label('Choose Expense')
+                ->multiple()
+                ->relationship('expenses', 'name')
+                ->preload()
+                ->required(),
             ]);
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        // Remove expenses from the data before creating the model
+        $expenseIds = $data['expenses'] ?? [];
+        unset($data['expenses']);
+        
+        // Create the trip type
+        $tripType = static::getModel()::create($data);
+        
+        // Sync the expenses
+        $tripType->expenses()->sync($expenseIds);
+        
+        return $tripType;
+    }
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        // Remove expenses from the data before updating the model
+        $expenseIds = $data['expenses'] ?? [];
+        unset($data['expenses']);
+        
+        // Update the trip type
+        $record->update($data);
+        
+        // Sync the expenses
+        $record->expenses()->sync($expenseIds);
+        
+        return $record;
     }
 
     public static function table(Table $table): Table

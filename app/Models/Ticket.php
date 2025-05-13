@@ -44,14 +44,9 @@ class Ticket extends Model
         return $this->belongsTo(Trip::class);
     }
 
-    /**
-     * Get the expenses associated with the ticket.
-     * Many-to-many relationship
-     */
-    public function expenses(): BelongsToMany
+    public function ticketExpenses()
     {
-        return $this->belongsToMany(Expenses::class, 'expense_ticket', 'ticket_id', 'expense_id')
-                    ->withTimestamps();
+        return $this->hasMany(TicketExpense::class);
     }
 
     

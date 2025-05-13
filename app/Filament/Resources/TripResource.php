@@ -7,7 +7,6 @@ use App\Filament\Resources\TripResource\RelationManagers;
 use App\Models\Trip;
 use App\Models\Hotel;
 use App\Models\TripType;
-use App\Models\ExpenseType;
 use App\Models\Boat;
 use App\Models\User;
 use App\Models\Ticket;
@@ -60,123 +59,15 @@ class TripResource extends Resource
                             ->options(Boat::pluck('name', 'id'))
                             ->required()
                             ->searchable(),
-                        Forms\Components\Select::make('boatman_id')
-                            ->label('Boatman')
-                            ->options(function() {
-                                return User::whereHas('roles', function ($query) {
-                                        $query->where('name', 'boatman');
-                                    })
-                                    ->orWhere('role', 'boatman')
-                                    ->pluck('name', 'id');
-                            })
-                            ->required()
-                            ->searchable(),
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'scheduled' => 'Scheduled',
-                                'completed' => 'Completed',
-                                'cancelled' => 'Cancelled',
-                            ])
-                            ->required()
+                        Forms\Components\Hidden::make('boatman_id')
+                            ->default(auth()->id()),
+                        Forms\Components\Hidden::make('status')
                             ->default('scheduled'),
                     ])
                     ->columns(2),
                 
-                Forms\Components\Section::make('Tickets')
-                    ->schema([
-                        Forms\Components\Repeater::make('hotels')
-                            ->relationship('ticket')
-                            ->schema([
-                                Forms\Components\Toggle::make('is_hotel_ticket')
-                                    ->label('Hotel Ticket')
-                                    ->default(true)
-                                    ->reactive()
-                                    ->helperText(function (\Filament\Forms\Get $get) {
-                                        return !$get('is_hotel_ticket') ? 'Walk in Ticket' : null;
-                                    }),
-
-                                Forms\Components\Select::make('hotel_id')
-                                    ->label('Hotel')
-                                    ->options(Hotel::pluck('name', 'id'))
-                                    ->required(function (\Filament\Forms\Get $get) {
-                                        return $get('is_hotel_ticket');
-                                    })
-                                    ->searchable()
-                                    ->visible(function (\Filament\Forms\Get $get) {
-                                        return $get('is_hotel_ticket');
-                                    }),
-                                Forms\Components\TextInput::make('number_of_passengers')
-                                    ->label('Number of Passengers')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(1),
-                                Forms\Components\Select::make('payment_status')
-                                    ->label('Payment Status')
-                                    ->options([
-                                        'pending' => 'Pending',
-                                        'paid' => 'Paid',
-                                    ])
-                                    ->required()
-                                    ->default('pending'),
-                                Forms\Components\Select::make('payment_method')
-                                    ->label('Payment Method')
-                                    ->options([
-                                        'cash' => 'Cash',
-                                        'bank_transfer' => 'Bank Transfer',
-                                        'credit_card' => 'Credit Card',
-                                    ])
-                                    ->nullable()
-                                    ->required()
-                                    ->default('cash'),
-                            ])
-                            ->columns(3)
-                            ->defaultItems(1)
-                            ->createItemButtonLabel('Add Hotel'),
-                    ]),
-                    Forms\Components\Section::make('Fuel & Remarks')
-                        ->schema([
-                            Forms\Components\TextInput::make('petrol_consumed')
-                                ->label('Petrol Consumed (liters)')
-                                ->numeric()
-                                ->default(0.00),
-                            Forms\Components\TextInput::make('petrol_filled')
-                                ->label('Petrol Filled (liters)')
-                                ->numeric()
-                                ->default(0.00),
-                            Forms\Components\Textarea::make('remarks')
-                                ->columnSpan(2),
-                        ])
-                        ->columns(2),
-               
-                   Forms\Components\Section::make('Expenses')
-    ->schema([
-        Forms\Components\Select::make('expense_type')
-            ->label('Expense Types')
-            ->multiple() // Allow multiple selections
-            ->options(ExpenseType::all()->pluck('name', 'id')) // Fetch expense types
-            ->required() // Optional: make this field required
-            ->searchable()
-            ->preload()
-            // Gunakan custom method untuk mengambil data
-            ->afterStateHydrated(function ($component, $state, $record) {
-                if ($record && $record->exists) {
-                    // Menggunakan nested relationship seperti yang Anda sebutkan
-                    $expenseTypeIds = $record->expenses()
-                        ->where('trip_id', $record->id)
-                        ->with('expenseType')
-                        ->get()
-                        ->flatMap(function ($expense) {
-                            return $expense->expenseType->pluck('id');
-                        })
-                        ->unique()
-                        ->toArray();
-                    
-                    $component->state($expenseTypeIds);
-                }
-            })
-            ->dehydrated(true),
-    ]),
+                
+        
             ]);
     }
 

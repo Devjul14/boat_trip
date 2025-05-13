@@ -140,10 +140,7 @@ class AdminPanelProvider extends PanelProvider
                             ->url(fn (): string => route('filament.admin.resources.invoices.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.invoices.*'));
 
-                        $financeItems[] = NavigationItem::make('Expenses')
-                            ->icon('heroicon-o-currency-dollar')
-                            ->url(fn (): string => route('filament.admin.resources.expenses.index'))
-                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.expenses.*'));
+                        
                     }
                     
                     if (!empty($financeItems)) {
@@ -164,10 +161,6 @@ class AdminPanelProvider extends PanelProvider
                             ->url(fn (): string => route('filament.admin.resources.trip-types.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.trip-types.*')),
 
-                        NavigationItem::make('Expense Types')
-                            ->icon('heroicon-o-tag')
-                            ->url(fn (): string => route('filament.admin.resources.expense-types.index'))
-                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.expense-types.*')),
                         
                         NavigationItem::make('Boats')
                             ->icon('heroicon-o-truck')
