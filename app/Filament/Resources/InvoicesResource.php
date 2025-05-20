@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoicesResource\Pages;
 use App\Filament\Resources\InvoicesResource\RelationManagers;
-use App\Models\ExpenseType;
+use App\Models\TicketExpense;
 use App\Models\Expenses;
 use App\Models\Invoices;
 use App\Models\Ticket;
@@ -95,33 +95,27 @@ class InvoicesResource extends Resource
                 ->pluck('id');
                 
             // Get expenses for these tickets
-            $expenses = Expenses::whereIn('ticket_id', $tickets)->get();
-            
-            // Get expense details without recalculating
-            foreach ($expenses as $expense) {
+            $ticketExpenses = TicketExpense::with(['expense', 'ticket'])->whereIn('ticket_id', $tickets)->get();
+  
+            foreach ($ticketExpenses as $ticketExpense) {
                 // Get ticket and expense type information
-                $ticket = Ticket::find($expense->ticket_id);
-                $expenseType = ExpenseType::find($expense->expense_type);
-                
-                if (!$ticket || !$expenseType) {
-                    continue;
-                }
+                $ticket = Ticket::find($ticketExpense->ticket_id);
                 
                 // Add to expenses data array - using stored values
                 $expensesData[] = [
                     'trip_date' => $trip->date,
                     'trip_type' => $trip->tripType->name ?? 'N/A',
-                    'expense_type' => $expenseType->name,
+                    'expense_type' => $ticketExpense->expense->name,
                     'passenger_count' => $ticket->number_of_passengers ?? 1,
-                    'amount' => $expense->amount, // Use stored amount directly
-                    'notes' => $expense->notes
+                    'amount' => $ticketExpense->amount,
+                    'notes' => $trip->notes
                 ];
             }
         }
         
         // Update data with processed invoice and expense information
         $data['invoicesData'] = $invoicesData;
-        $data['expensesData'] = $expensesData; // Add expenses data to the view data
+        $data['expensesData'] = $expensesData; 
         $data['totalAmount'] = $totalAmount;
         
         // Generate PDF using the invoice PDF template

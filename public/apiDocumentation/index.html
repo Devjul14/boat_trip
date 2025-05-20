@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NounCity API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 15px;
+            line-height: 1.6;
+            background: #f9f9f9;
+            color: #333;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #2c3e50;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 40px 0;
+        }
+
+        a {
+            color: #77a4ec;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>API Documentation - NounCity</h1>
+
+    <h2>Authentication</h2>
+
+    <h3>Login</h3>
+    <p><strong>Endpoint:</strong> <code>POST https://nouncity.com/api/login</code><br />
+        <strong>Description:</strong> Authenticate user and obtain access token.
+    </p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "phone": "085702053522",
+  "password": "password"
+}
+</code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Login successful, returns user token and details.<br />
+        - <code>401 Unauthorized</code> - Invalid credentials.</p>
+
+    <hr />
+
+    <h2>Trips</h2>
+
+    <h3>List Trips</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/admin/trips</code><br />
+        <strong>Description:</strong> Retrieve a list of all trips.
+    </p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns array of trip objects.</p>
+
+    <hr />
+
+    <h3>Get Single Trip</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/admin/trips/{trip_id}</code><br />
+        <strong>Description:</strong> Retrieve details of a single trip by ID.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>trip_id</code> (integer) - ID of the trip.</p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns trip object.<br />
+        - <code>404 Not Found</code> - Trip not found.</p>
+
+    <hr />
+
+    <h3>Create Trip</h3>
+    <p><strong>Endpoint:</strong> <code>POST https://nouncity.com/api/admin/trips</code><br />
+        <strong>Description:</strong> Create a new trip.
+    </p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "date": "2025-05-8",
+  "trip_type_id": 1,
+  "boat_id": 5,
+  "remarks": "testing boatman create trip",
+  "status": "scheduled",
+  "petrol_consumed": "2.00",
+  "petrol_filled": "6.00"
+}
+</code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>201 Created</code> - Trip successfully created.<br />
+        - <code>400 Bad Request</code> - Validation errors.</p>
+
+    <hr />
+
+    <h3>Update Trip</h3>
+    <p><strong>Endpoint:</strong> <code>PUT https://nouncity.com/api/admin/trips/{trip_id}</code><br />
+        <strong>Description:</strong> Update details of an existing trip.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>trip_id</code> (integer) - ID of the trip to update.</p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "date": "2025-05-07",
+  "trip_type_id": 1,
+  "boat_id": 5,
+  "remarks": "test request on postman update",
+  "status": "scheduled",
+  "petrol_consumed": "36.00",
+  "petrol_filled": "26.00"
+}
+</code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Trip successfully updated.<br />
+        - <code>404 Not Found</code> - Trip not found.<br />
+        - <code>400 Bad Request</code> - Validation errors.</p>
+
+    <hr />
+
+    <h3>Complete Trip</h3>
+    <p><strong>Endpoint:</strong> <code>POST https://nouncity.com/api/trips/{trip_id}/complete</code><br />
+        <strong>Description:</strong> Mark a trip as completed.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>trip_id</code> (integer) - ID of the trip.</p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Trip marked as completed.<br />
+        - <code>404 Not Found</code> - Trip not found.</p>
+
+    <hr />
+
+    <h3>Cancel Trip</h3>
+    <p><strong>Endpoint:</strong> <code>POST https://nouncity.com/api/trips/{trip_id}/cancel</code><br />
+        <strong>Description:</strong> Cancel a trip.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>trip_id</code> (integer) - ID of the trip.</p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Trip canceled.<br />
+        - <code>404 Not Found</code> - Trip not found.</p>
+
+    <hr />
+
+    <h2>Tickets</h2>
+
+    <h3>List Tickets</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/admin/tickets</code><br />
+        <strong>Description:</strong> Retrieve a list of all tickets.
+    </p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns array of ticket objects.</p>
+
+    <hr />
+
+    <h3>Get Single Ticket</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/admin/tickets/{ticket_id}</code><br />
+        <strong>Description:</strong> Retrieve details of a single ticket.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>ticket_id</code> (integer) - ID of the ticket.</p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns ticket object.<br />
+        - <code>404 Not Found</code> - Ticket not found.</p>
+
+    <hr />
+
+    <h3>Create Ticket</h3>
+    <p><strong>Endpoint:</strong> <code>POST https://nouncity.com/api/admin/tickets</code><br />
+        <strong>Description:</strong> Create a new ticket.
+    </p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "trip_id": 115,
+  "hotel_id": 3,
+  "number_of_passengers": 1,
+  "is_hotel_ticket": 1,
+  "payment_method": "bank_transfer",
+  "payment_status": "pending",
+  "expenses": [
+    {
+      "expense_id": 1,
+      "amount": 50000
+    },
+    {
+      "expense_id": 2,
+      "amount": 75000
+    }
+  ]
+}
+</code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>201 Created</code> - Ticket successfully created.<br />
+        - <code>400 Bad Request</code> - Validation errors.</p>
+
+    <hr />
+
+    <h3>Update Ticket</h3>
+    <p><strong>Endpoint:</strong> <code>PUT https://nouncity.com/api/admin/tickets/{ticket_id}</code><br />
+        <strong>Description:</strong> Update an existing ticket.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>ticket_id</code> (integer) - ID of the ticket.</p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "trip_id": 115,
+  "hotel_id": 3,
+  "number_of_passengers": 1,
+  "is_hotel_ticket": 1,
+  "payment_method": "bank_transfer",
+  "payment_status": "pending",
+  "expenses": [
+    {
+      "expense_id": 1,
+      "amount": 50000
+    },
+    {
+      "expense_id": 2,
+      "amount": 75000
+    }
+  ]
+}
+</code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Ticket successfully updated.<br />
+        - <code>404 Not Found</code> - Ticket not found.<br />
+        - <code>400 Bad Request</code> - Validation errors.</p>
+
+    <hr />
+
+    <h3>Search Tickets</h3>
+    <p>
+        <strong>Endpoint:</strong>
+        <code>GET https://nouncity.com/api/tickets/search</code><br />
+        <strong>Description:</strong> Retrieve a list of tickets filtered by optional parameters such as
+        <code>hotel_id</code>, <code>payment_method</code>, and <code>payment_status</code>.
+    </p>
+
+    <p><strong>Query Parameters:</strong></p>
+    <ul>
+        <li><code>hotel_id</code> (integer) – ID of the hotel</li>
+        <li><code>payment_method</code> (string) – Method of payment</li>
+        <li><code>payment_status</code> (string) – Status of payment</li>
+    </ul>
+
+    <p><strong>Options for <code>payment_method</code>:</strong></p>
+    <ul>
+        <li><code>cash</code> – Paid using physical cash</li>
+        <li><code>credit_card</code> – Paid using a credit card</li>
+        <li><code>bank_transfer</code> – Paid via bank transfer</li>
+    </ul>
+
+    <p><strong>Options for <code>payment_status</code>:</strong></p>
+    <ul>
+        <li><code>pending</code> – Payment not completed yet</li>
+        <li><code>paid</code> – Payment has been successfully completed</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+    <pre><code>GET https://nouncity.com/api/tickets/search?hotel_id=4&payment_method=bank_transfer&payment_status=paid
+    </code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns a list of filtered tickets.<br />
+        - <code>400 Bad Request</code> - Invalid parameters.
+    </p>
+
+    <hr />
+
+    <h2>Boats</h2>
+
+    <h3>List Boats</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/admin/boats</code><br />
+        <strong>Description:</strong> Retrieve a list of boats.
+    </p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns array of boat objects.</p>
+
+    <hr />
+
+    <h2>Invoices</h2>
+
+    <h3>Get Single Invoice</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/admin/invoices/{invoice_id}</code><br />
+        <strong>Description:</strong> Retrieve details of a single invoice.
+    </p>
+
+    <p><strong>Path Parameters:</strong><br />
+        - <code>invoice_id</code> (integer) - ID of the invoice.</p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns invoice object.<br />
+        - <code>404 Not Found</code> - Invoice not found.</p>
+
+    <hr />
+
+    <h2>User Profile</h2>
+
+    <h3>Get User Profile</h3>
+    <p><strong>Endpoint:</strong> <code>GET https://nouncity.com/api/user/profile</code><br />
+        <strong>Description:</strong> Retrieve the profile of the authenticated user.
+    </p>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns user profile object.</p>
+
+    <hr />
+
+    <h3>Update User Profile</h3>
+    <p><strong>Endpoint:</strong> <code>PUT https://nouncity.com/api/user/updateProfile</code><br />
+        <strong>Description:</strong> Update the authenticated user’s profile.
+    </p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "id": 13,
+  "name": "Abi Boatman",
+  "email": "abi@example.com",
+  "phone": "087710983444"
+}
+</code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Profile updated.<br />
+        - <code>400 Bad Request</code> - Validation errors.</p>
+
+</body>
+
+</html>

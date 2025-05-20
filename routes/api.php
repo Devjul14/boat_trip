@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Api\CompletedTripController;
 use App\Http\Controllers\Api\CancelTripController;
 use App\Http\Controllers\Api\SelfController;
+use App\Http\Controllers\Api\TicketController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -26,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/trips/{id}/cancel', [CancelTripController::class, 'cancelTrip']);
     Route::get('/user/profile', [SelfController::class, 'viewSelf']);
     Route::put('/user/updateProfile', [SelfController::class, 'updateSelf']);
+    Route::get('/tickets/search', [TicketController::class, 'search']);
 });
 
 

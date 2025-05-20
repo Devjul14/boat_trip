@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Trip;
+use App\Models\TicketExpense;
 use App\Models\Hotel;
 use App\Models\Invoices;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class CompletedTripController extends Controller
             Log::info("API: Trip status updated to 'completed'");
             
             // Generate invoices for each hotel in the trip
-            $ticketsByHotel = $trip->ticket()->where('is_hotel_ticket', true)->get()->groupBy('hotel_id');
+            $ticketsByHotel = $trip->ticket()->get()->groupBy('hotel_id');
             Log::info("API: Found " . count($ticketsByHotel) . " hotels with tickets");
             
             $invoiceCount = 0;
@@ -53,10 +54,13 @@ class CompletedTripController extends Controller
             $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
             Log::info("API: Issue date: {$issueDate}, Due date: {$dueDate}");
             
-            // Get all expenses for this trip
-            $tripExpenses = $trip->expenses()->get();
-            $totalExpenseAmount = $tripExpenses->sum('amount');
-            Log::info("API: Total expense amount for trip: {$totalExpenseAmount}");
+            // Get all ticket expenses for this trip (via expenses_tickets pivot)
+            $tickets = $trip->ticket()->get(); 
+            $ticketIds = $tickets->pluck('id');   
+            $ticketExpenses = TicketExpense::whereIn('ticket_id', $ticketIds)->get();
+            $totalExpenseAmount = $ticketExpenses->sum('amount');
+            Log::info("API: Total expense amount for trip {$trip->id}: {$totalExpenseAmount}");
+
             
             $invoices = [];
             

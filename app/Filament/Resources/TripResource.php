@@ -10,6 +10,7 @@ use App\Models\TripType;
 use App\Models\Boat;
 use App\Models\User;
 use App\Models\Ticket;
+use App\Models\TicketExpense;
 use App\Models\Invoices;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -66,7 +67,12 @@ class TripResource extends Resource
                     ])
                     ->columns(2),
                 
-                
+                Forms\Components\Section::make('Fuel & Remarks')
+                    ->schema([
+                        Forms\Components\Textarea::make('remarks')
+                            ->columnSpan(2),
+                    ])
+                    ->columns(2),
         
             ]);
     }
@@ -146,7 +152,7 @@ class TripResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                // Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('complete_trip')
                     ->label('Complete Trip')
@@ -161,8 +167,7 @@ class TripResource extends Resource
                             \Log::info("Trip status updated to 'completed'");
                             
                             // Generate invoices for each hotel in the trip
-                            $ticketsByHotel = $record->ticket()->where('is_hotel_ticket', true)->get()->groupBy('hotel_id');
-                            \Log::info("Found " . count($ticketsByHotel) . " hotels with tickets");
+                            $ticketsByHotel = $record->ticket()->get()->groupBy('hotel_id');
                             
                             $invoiceCount = 0;
                             $ticketCount = 0;
@@ -172,10 +177,15 @@ class TripResource extends Resource
                             $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
                             \Log::info("Issue date: {$issueDate}, Due date: {$dueDate}");
                             
-                            // Get all expenses for this trip
-                            $tripExpenses = $record->expenses()->get();
-                            $totalExpenseAmount = $tripExpenses->sum('amount');
-                            \Log::info("Total expense amount for trip: {$totalExpenseAmount}");
+                           // Get all ticket expenses for this trip (via expenses_tickets pivot)
+                            $tickets = $record->ticket()->get();
+                            $ticketIds = $tickets->pluck('id');
+                            
+                            $ticketExpenses = TicketExpense::whereIn('ticket_id', $ticketIds)->get();
+                            $totalExpenseAmount = $ticketExpenses->sum('amount');
+                            
+                            \Log::info("Total expense amount (from pivot expenses_tickets) for trip: {$totalExpenseAmount}");
+
                             
                             foreach ($ticketsByHotel as $hotelId => $tickets) {
                                 if (!$hotelId) {
@@ -268,84 +278,7 @@ class TripResource extends Resource
                             foreach ($records as $record) {
                                 $record->update(['status' => $data['status']]);
                             }
-                        }),
-                    // Add bulk complete trips action
-                    Tables\Actions\BulkAction::make('complete_trips')
-                        ->label('Complete Trips')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (Collection $records) {
-                            $completedCount = 0;
-                            $totalInvoices = 0;
-                            $totalTickets = 0;
-                            
-                            foreach ($records as $record) {
-                                if ($record->status === 'scheduled') {
-                                    // Update trip status
-                                    $record->update(['status' => 'completed']);
-                                    $completedCount++;
-                                    
-                                    // Generate invoices for each hotel in the trip
-                                    $ticketsByHotel = $record->ticket()->where('is_hotel_ticket', true)->get()->groupBy('hotel_id');
-                                    
-                                    // Calculate issue date from trip date
-                                    $issueDate = $record->date;
-                                    
-                                    // Calculate due date (1 week after issue date)
-                                    $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
-                                    
-                                    foreach ($ticketsByHotel as $hotelId => $tickets) {
-                                        if (!$hotelId) continue; // Skip if hotel_id is null
-                                        
-                                        // Calculate total amount for this hotel
-                                        $totalAmount = $tickets->sum('total_rf');
-                                        
-                                        // Generate invoice number
-                                        $lastInvoice = Invoices::orderBy('id', 'desc')->first();
-                                        $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 8, 3)) : 0;
-                                        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-                                        $invoiceNumber = 'AK/' . date('Y') . '/' . $newNumber;
-                                        
-                                        // Create invoice record
-                                        $invoice = Invoices::create([
-                                            'invoice_number' => $invoiceNumber,
-                                            'hotel_id' => $hotelId,
-                                            'trip_id' => $record->id,
-                                            'month' => date('F'), 
-                                            'year' => date('Y'),
-                                            'issue_date' => $issueDate,
-                                            'due_date' => $dueDate,
-                                            'total_amount' => $totalAmount,
-                                            'status' => 'draft',
-                                        ]);
-                                        
-                                        $totalInvoices++;
-
-                                        // Update invoice_id on the tickets
-                                        foreach ($tickets as $ticket) {
-                                            $ticket->update(['invoice_id' => $invoice->id]);
-                                            $totalTickets++;
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Show success notification
-                            if ($completedCount > 0) {
-                                Notification::make()
-                                    ->success()
-                                    ->title('Trips Completed Successfully')
-                                    ->body("{$completedCount} trip(s) have been marked as completed. {$totalInvoices} invoice(s) and {$totalTickets} ticket(s) have been generated.")
-                                    ->persistent()
-                                    ->send();
-                            }
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Complete Selected Trips')
-                        ->modalDescription('Are you sure you want to mark all selected trips as completed? This will create invoice records for each hotel and generate tickets.')
-                        ->modalSubmitActionLabel('Yes, complete trips')
-                        ->deselectRecordsAfterCompletion()
-                        ->visible(fn () => true),
+                    }),
                 ]),
             ]);
     }
@@ -353,7 +286,7 @@ class TripResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\TicketRelationManager::class,
+            // RelationManagers\TicketRelationManager::class,
         ];
     }
    
