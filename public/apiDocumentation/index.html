@@ -179,6 +179,41 @@
 
     <hr />
 
+    <h3>Search Trips</h3>
+    <p>
+        <strong>Endpoint:</strong>
+        <code>GET https://nouncity.com/api/trips/search</code><br />
+        <strong>Description:</strong> Retrieve a list of trips filtered by optional parameters.
+    </p>
+
+    <p><strong>Query Parameters:</strong></p>
+    <ul>
+        <li><code>date</code> (date) – Date of the trip (YYYY-MM-DD)</li>
+        <li><code>trip_type_id</code> (integer) – ID of the trip type</li>
+        <li><code>boat_id</code> (integer) – ID of the boat</li>
+        <li><code>boatman_id</code> (integer) – ID of the boatman</li>
+        <li><code>status</code> (string) – Trip status</li>
+    </ul>
+
+    <p><strong>Options for <code>status</code>:</strong></p>
+    <ul>
+        <li><code>scheduled</code> – Trip is scheduled</li>
+        <li><code>completed</code> – Trip has been completed</li>
+        <li><code>cancelled</code> – Trip was cancelled</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+    <pre><code>GET https://nouncity.com/api/trips/search?date=2025-05-20&boat_id=2&status=scheduled
+    </code></pre>
+
+    <p><strong>Response:</strong><br />
+        - <code>200 OK</code> - Returns a list of filtered trips.<br />
+        - <code>400 Bad Request</code> - Invalid parameters.
+    </p>
+
+    <hr />
+
+
     <h2>Tickets</h2>
 
     <h3>List Tickets</h3>
