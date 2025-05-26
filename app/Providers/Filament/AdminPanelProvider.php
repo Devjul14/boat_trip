@@ -89,14 +89,14 @@ class AdminPanelProvider extends PanelProvider
                         'spatie_roles' => $rolesInDB,
                     ]);
                     
-                    // NOTE: Ini untuk menampilkan menu berdasarkan kolom 'role' juga
+                    
                     $isAdmin = $user->hasRole('Admin') || $roleInColumn === 'Admin';
                     $isManager = $user->hasRole('Manager') || $roleInColumn === 'Manager';
                     $isSuperAdmin = $user->hasRole('Super Admin') || $roleInColumn === 'Super Admin';
                     $isBoatman = $user->hasRole('Boatman') || $roleInColumn === 'Boatman';
                 }
                 
-                // Dashboard untuk semua pengguna
+                // Dashboard for all
                 $builder->item(
                     NavigationItem::make('Dashboard')
                         ->icon('heroicon-o-home')
@@ -104,10 +104,10 @@ class AdminPanelProvider extends PanelProvider
                         ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.dashboard'))
                 );
                 
-                // Grup Operations untuk semua pengguna
+                // Grup Operations for all
                 $operationsItems = [];
                                 
-                // Trips untuk semua role
+                // Trips for semua role
                 $operationsItems[] = NavigationItem::make('Trips')
                     ->icon('heroicon-o-paper-airplane')
                     ->url(fn (): string => route('filament.admin.resources.trips.index'))
@@ -119,13 +119,6 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => route('filament.admin.resources.tickets.index'))
                     ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.tickets.*'));
                 
-                // Hotels untuk Admin, Manager, Super Admin
-                if ($isAdmin || $isManager || $isSuperAdmin) {
-                    $operationsItems[] = NavigationItem::make('Hotels')
-                        ->icon('heroicon-o-building-office')
-                        ->url(fn (): string => route('filament.admin.resources.hotels.index'))
-                        ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.hotels.*'));
-                }
                 
                 $builder->group('Operations', $operationsItems);
                 
@@ -133,7 +126,7 @@ class AdminPanelProvider extends PanelProvider
                 if ($isAdmin || $isManager || $isSuperAdmin) {
                     $financeItems = [];
                     
-                    // invoices untuk Admin, Super Admin
+                    // invoices for Admin, Super Admin
                     if ($isAdmin || $isSuperAdmin) {
                         $financeItems[] = NavigationItem::make('Invoices')
                             ->icon('heroicon-o-currency-dollar')
@@ -148,13 +141,23 @@ class AdminPanelProvider extends PanelProvider
                     }
                 }
                 
-                // Grup Administration untuk Admin, Super Admin
+                // Grup Administration for Admin, Super Admin
                 if ($isAdmin || $isSuperAdmin) {
                     $adminItems = [
                         NavigationItem::make('Users')
                             ->icon('heroicon-o-users')
                             ->url(fn (): string => route('filament.admin.resources.users.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.users.*')),
+                        
+                        NavigationItem::make('Boats')
+                            ->icon('heroicon-o-truck')
+                            ->url(fn (): string => route('filament.admin.resources.boats.index'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.boats.*')),
+
+                        NavigationItem::make('Hotels')
+                            ->icon('heroicon-o-building-office')
+                            ->url(fn (): string => route('filament.admin.resources.hotels.index'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.hotels.*')),
                         
                         NavigationItem::make('Trip Types')
                             ->icon('heroicon-o-tag')
@@ -166,16 +169,13 @@ class AdminPanelProvider extends PanelProvider
                             ->url(fn (): string => route('filament.admin.resources.expenses.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.expenses.*')),
                             
-                        NavigationItem::make('Boats')
-                            ->icon('heroicon-o-truck')
-                            ->url(fn (): string => route('filament.admin.resources.boats.index'))
-                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.boats.*')),
+                        
                     ];
                     
                     $builder->group('Administration', $adminItems);
                 }
                 
-                // Grup Settings hanya untuk Super Admin
+                // Grup Settings hanya for Super Admin
                 if ($isSuperAdmin) {
                     $builder->group('Settings', [
                         NavigationItem::make('Roles')

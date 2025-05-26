@@ -8,7 +8,10 @@ use Filament\Infolists\Infolist;
 use Infolists\Components\BadgeEntry;
 use App\Filament\Resources\TripResource;
 use Filament\Resources\Pages\ViewRecord;
-use Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeaterEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\Section;
 
 class ViewTrip extends ViewRecord
 {
@@ -26,18 +29,17 @@ class ViewTrip extends ViewRecord
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Trip Information')
+                Section::make('Trip Information')
                     ->schema([
-                        Infolists\Components\TextEntry::make('date')
+                        TextEntry::make('date')
                             ->date(),
-                        Infolists\Components\TextEntry::make('bill_number'),
-                        Infolists\Components\TextEntry::make('tripType.name')
+                        TextEntry::make('tripType.name')
                             ->label('Trip Type'),
-                        Infolists\Components\TextEntry::make('boat.name')
+                        TextEntry::make('boat.name')
                             ->label('Boat'),
-                        Infolists\Components\TextEntry::make('boatman.name')
+                        TextEntry::make('boatman.name')
                             ->label('Boatman'),
-                        Infolists\Components\TextEntry::make('status')
+                        TextEntry::make('status')
                         ->badge()
                         ->color(fn (string $state): string => 
                             match ($state) {
@@ -47,15 +49,30 @@ class ViewTrip extends ViewRecord
                                 default => 'gray',
                             }
                         ),
-                    ])
-                    ->columns(3),
-
-                Infolists\Components\Section::make('Remarks')
-                    ->schema([
-                        Infolists\Components\TextEntry::make('remarks')
+                        TextEntry::make('remarks')
                             ->markdown()
                             ->columnSpanFull(),
-                    ]),
+                    ])
+                    ->columns(3),
+                
+                Section::make('Invoices')
+                ->schema([
+                    RepeatableEntry::make('invoices')
+                        ->schema([
+                            TextEntry::make('invoice_number')->label('Invoice #'),
+                            TextEntry::make('hotel.name')->label('Hotel'),
+                            TextEntry::make('month'),
+                            TextEntry::make('year'),
+                            TextEntry::make('issue_date')->date(),
+                            TextEntry::make('due_date')->date(),
+                            TextEntry::make('total_amount')->money('usd'), // ganti 'usd' jika perlu
+                            TextEntry::make('status')->badge(),
+                        ])
+                        ->columns(4)
+                        ->label('Invoices')
+                        ->columnSpanFull()
+                        ->visible(fn ($record) => $record->invoices->isNotEmpty()),
+                ]),
                     
             ]);
     }

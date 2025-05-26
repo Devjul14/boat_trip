@@ -16,4 +16,9 @@ class ListTrips extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    protected function getTableRecordUrlUsing(): ?\Closure
+    {
+        return fn ($record) => TripResource::getUrl('view', ['record' => $record]);
+    }
 }

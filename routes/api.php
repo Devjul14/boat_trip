@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [SelfController::class, 'viewSelf']);
     Route::put('/user/updateProfile', [SelfController::class, 'updateSelf']);
     Route::get('/tickets/search', [TicketController::class, 'search']);
+    Route::put('/admin/tickets/{id}/status-update', [TicketController::class, 'statusUpdate']);
     Route::get('/trips/search', [TripController::class, 'search']);
 });
 

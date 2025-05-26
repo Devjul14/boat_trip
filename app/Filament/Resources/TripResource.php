@@ -42,7 +42,7 @@ class TripResource extends Resource
      * @return void
      */
 
- public static function form(Form $form): Form
+    public static function form(Form $form): Form
     {
         return $form
             ->schema([
@@ -286,7 +286,7 @@ class TripResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // RelationManagers\TicketRelationManager::class,
+            RelationManagers\TicketRelationManager::class,
         ];
     }
    

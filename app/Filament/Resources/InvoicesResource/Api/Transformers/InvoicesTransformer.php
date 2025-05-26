@@ -16,19 +16,29 @@ class InvoicesTransformer extends JsonResource
      * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function toArray($request)
-    {
-        $data = $this->resource->toArray();
-        
-        $hotel = $this->resource->hotel;
-        $baseFileName = "invoices_{$hotel->name}_" . date('Y-m-d_His', strtotime($this->resource->created_at));
-        $baseFileName = \Illuminate\Support\Str::slug($baseFileName);
-        $fileName = $baseFileName . '.pdf';
-        
+   public function toArray($request)
+{
+    $data = $this->resource->toArray();
 
-        $data['hotel'] = $hotel->toArray();
-        $data['inv_pdf'] = url('storage/pdf/' . $fileName);
-        
-        return $data;
-    }
+    // Related hotel
+    $hotel = $this->resource->hotel;
+    $baseFileName = "invoices_{$hotel->name}_" . date('Y-m-d_His', strtotime($this->resource->created_at));
+    $baseFileName = \Illuminate\Support\Str::slug($baseFileName);
+    $fileName = $baseFileName . '.pdf';
+
+    // Attach hotel data
+    $data['hotel'] = $hotel->toArray();
+    $data['inv_pdf'] = url('storage/pdf/' . $fileName);
+
+    // Get tickets where hotel_id and trip_id match this invoice
+    $tickets = \App\Models\Ticket::where('hotel_id', $this->resource->hotel_id)
+                ->where('trip_id', $this->resource->trip_id)
+                ->get()
+                ->toArray();
+
+    $data['tickets'] = $tickets;
+
+    return $data;
+}
+
 }

@@ -32,10 +32,6 @@ class TicketRelationManager extends RelationManager
                     ->required()
                     ->default(1)
                     ->minValue(1),
-                Forms\Components\TextInput::make('price')
-                    ->label('price')
-                    ->numeric()
-                    ->required(),
                 Forms\Components\Select::make('payment_status')
                     ->label('Payment Status')
                     ->options([
@@ -51,9 +47,6 @@ class TicketRelationManager extends RelationManager
                         'credit_card' => 'Credit Card',
                     ])
                     ->default('cash'),
-                Forms\Components\Toggle::make('is_hotel_ticket')
-                    ->label('Is Hotel Ticket')
-                    ->default(true),
             ]);
     }
 
@@ -71,10 +64,6 @@ class TicketRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('number_of_passengers')
                     ->label('Number of Passengers')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('total_usd')
-                    ->label('Price')
-                    ->money('USD')
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('payment_status')
                     ->label('Payment Status')
                     ->badge()
@@ -85,9 +74,6 @@ class TicketRelationManager extends RelationManager
                     }),
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Payment Method'),
-                Tables\Columns\IconColumn::make('is_hotel_ticket')
-                    ->label('Hotel Ticket')
-                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

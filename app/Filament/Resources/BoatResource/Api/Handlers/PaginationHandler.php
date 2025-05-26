@@ -18,9 +18,15 @@ class PaginationHandler extends Handlers {
      * @param Request $request
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
-    public function handler()
+    public function handler(Request $request)
     {
+        $user = $request->user(); 
+
         $query = static::getEloquentQuery();
+
+        if ($user->hasRole('Boatman')) {
+            $query->where('boatman_id', $user->id);
+        }
 
         $query = QueryBuilder::for($query)
         ->allowedFields($this->getAllowedFields() ?? [])

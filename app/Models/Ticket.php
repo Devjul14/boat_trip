@@ -27,7 +27,20 @@ class Ticket extends Model
         'payment_method',
         'payment_status',
     ];
+    
+    // Add the calculated field to the appends array
+    protected $appends = ['total_amount'];
 
+    // Auto-load relationships by default
+    protected $with = ['ticketExpenses'];
+    
+    // Calculated attribute for total amount
+    public function getTotalAmountAttribute()
+    {
+        return $this->ticketExpenses->sum(function ($expense) {
+            return $expense->amount * $this->number_of_passengers;
+        });
+    }
 
     public function invoice(): BelongsTo
     {

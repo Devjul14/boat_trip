@@ -20,15 +20,19 @@ class UpdateTicketRequest extends FormRequest
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
-    {
-        return [
-            'trip_id' => 'required',
-			'hotel_id' => 'required',
-			'is_hotel_ticket' => 'nullable',
-			'number_of_passengers' => 'required',
-			'payment_method' => 'required',
-			'payment_status' => 'required',
+{
+    return [
+        'trip_id' => 'required|exists:trips,id',
+        'hotel_id' => 'nullable|exists:hotels,id',
+        'is_hotel_ticket' => 'nullable|boolean',
+        'number_of_passengers' => 'required|integer|min:1',
+        'payment_method' => 'required|string',
+        'payment_status' => 'required|string',
 
-		];
-    }
+        'expenses' => 'nullable|array',
+        'expenses.*.expense_id' => 'required|exists:expense,id',
+        'expenses.*.amount' => 'required|numeric|min:0',
+    ];
+}
+
 }
