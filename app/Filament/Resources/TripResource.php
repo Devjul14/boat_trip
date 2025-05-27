@@ -159,67 +159,61 @@ class TripResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->action(function (Trip $record) {
-                        if ($record->status === 'scheduled') {
+                        if ($record->status !== 'scheduled') {
+                            \Log::warning("Attempted to complete trip {$record->id} but it's not in 'scheduled' status");
+                            return;
+                        }
+
+                        \DB::beginTransaction();
+                        try {
                             \Log::info("Starting trip completion process for trip ID: {$record->id}");
-                            
+
                             // Update trip status
                             $record->update(['status' => 'completed']);
                             \Log::info("Trip status updated to 'completed'");
-                            
-                            // Generate invoices for each hotel in the trip
-                            $ticketsByHotel = $record->ticket()->get()->groupBy('hotel_id');
-                            
-                            $invoiceCount = 0;
-                            $ticketCount = 0;
-                            
-                            // Calculate issue date from trip date
-                            $issueDate = $record->date;
-                            $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
-                            \Log::info("Issue date: {$issueDate}, Due date: {$dueDate}");
-                            
-                           // Get all ticket expenses for this trip (via expenses_tickets pivot)
+
                             $tickets = $record->ticket()->get();
                             $ticketIds = $tickets->pluck('id');
-                            
+
+                            // Update payment_status to 'unpaid'
+                            Ticket::whereIn('id', $ticketIds)->update(['payment_status' => 'unpaid']);
+                            \Log::info("Updated payment_status to 'unpaid' for " . count($ticketIds) . " tickets");
+
                             $ticketExpenses = TicketExpense::whereIn('ticket_id', $ticketIds)->get();
                             $totalExpenseAmount = $ticketExpenses->sum('amount');
-                            
-                            \Log::info("Total expense amount (from pivot expenses_tickets) for trip: {$totalExpenseAmount}");
 
-                            
-                            foreach ($ticketsByHotel as $hotelId => $tickets) {
+                            $ticketsByHotel = $tickets->groupBy('hotel_id');
+                            $issueDate = $record->date;
+                            $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
+
+                            $invoiceCount = 0;
+                            $invoiceItemsCount = 0;
+
+                            foreach ($ticketsByHotel as $hotelId => $hotelTickets) {
                                 if (!$hotelId) {
-                                    \Log::info("Skipping hotel with null ID");
+                                    \Log::info("Skipping tickets with null hotel ID");
                                     continue;
                                 }
-                                
-                                $hotelName = Hotel::find($hotelId)->name ?? "Walk In Trip";
-                                \Log::info("Processing hotel ID: {$hotelId} ({$hotelName})");
 
-                                // Get total passengers for this hotel
-                                $totalPassengers = $tickets->sum('number_of_passengers');
-                                \Log::info("Total passengers for hotel {$hotelId}: {$totalPassengers}");
-                                
-                                // Calculate ticket price total
-                                // $ticketPriceTotal = $tickets->sum('price');
-                                // \Log::info("Total ticket price for hotel {$hotelId}: {$ticketPriceTotal}");
-                                
-                                // Calculate expense portion for this hotel (expense amount * passenger count)
-                                $totalInvoice = $totalExpenseAmount * $totalPassengers;
-                                \Log::info("Expense amount for hotel {$hotelId}: {$totalInvoice} (calculated as {$totalExpenseAmount} * {$totalPassengers})");
-                                
-                                // Calculate total amount = ticket price + (expense * passengers)
-                                // $totalAmount = $ticketPriceTotal + $expenseForThisHotel;
-                                // \Log::info("Total invoice amount for hotel {$hotelId}: {$totalAmount} (ticket price: {$ticketPriceTotal} + expense: {$expenseForThisHotel})");
-                                
+                                $hotel = Hotel::find($hotelId);
+                                $hotelName = $hotel?->name ?? 'Walk In Trip';
+
+                                $totalPassengers = $hotelTickets->sum('number_of_passengers');
+                                if ($totalPassengers === 0) {
+                                    \Log::warning("Total passengers is 0 for hotel ID: {$hotelId}");
+                                    continue;
+                                }
+
+                                $totalInvoiceAmount = $totalExpenseAmount * $totalPassengers;
+                                $unitAmount = $totalExpenseAmount; // per orang
+
                                 // Generate invoice number
                                 $lastInvoice = Invoices::orderBy('id', 'desc')->first();
                                 $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 8, 3)) : 0;
                                 $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
                                 $invoiceNumber = 'AK/' . date('Y') . '/' . $newNumber;
-                                \Log::info("Generated invoice number: {$invoiceNumber}");
-                            
-                                // Create invoice record with trip_id, issue_date, and due_date
+
+                                // Create invoice
                                 $invoice = Invoices::create([
                                     'invoice_number' => $invoiceNumber,
                                     'hotel_id' => $hotelId,
@@ -228,38 +222,55 @@ class TripResource extends Resource
                                     'year' => date('Y'),
                                     'issue_date' => $issueDate,
                                     'due_date' => $dueDate,
-                                    'total_amount' => $totalInvoice,
+                                    'total_amount' => $totalInvoiceAmount,
                                     'status' => 'draft',
                                 ]);
-                                \Log::info("Created invoice ID: {$invoice->id} for hotel {$hotelId}");
+
+                                \Log::info("Created invoice ID: {$invoice->id} for hotel ID: {$hotelId} ({$hotelName})");
+
+                                // Create invoice_items
+                                foreach ($hotelTickets as $ticket) {
+                                    InvoiceItems::create([
+                                        'invoice_id' => $invoice->id,
+                                        'ticket_id' => $ticket->id,
+                                        'unit_amount' => $unitAmount,
+                                    ]);
+                                    $invoiceItemsCount++;
+                                    \Log::info("Created invoice_item for ticket {$ticket->id} with unit_amount {$unitAmount}");
+                                }
 
                                 $invoiceCount++;
-                                
                             }
-                            
-                            \Log::info("Trip completion process finished. Generated {$invoiceCount} invoices and processed {$ticketCount} tickets");
-                            
-                            // Show success notification
+
+                            \DB::commit();
+
                             Notification::make()
                                 ->success()
                                 ->title('Trip Completed Successfully')
-                                ->body("Trip has been marked as completed. {$invoiceCount} invoice(s) have been generated.")
+                                ->body("Trip marked as completed. {$invoiceCount} invoice(s) and {$invoiceItemsCount} invoice item(s) created.")
                                 ->persistent()
                                 ->send();
-                                
-                            \Log::info("Trip completion process successful for trip {$record->id}. Generated {$invoiceCount} invoices and updated {$ticketCount} tickets");
-                        } else {
-                            \Log::warning("Attempted to complete trip {$record->id} but it's not in 'scheduled' status");
+
+                            \Log::info("Trip completion success for trip ID {$record->id}: {$invoiceCount} invoice(s), {$invoiceItemsCount} invoice_item(s)");
+
+                        } catch (\Exception $e) {
+                            \DB::rollBack();
+                            \Log::error("Trip completion FAILED for trip ID {$record->id}: " . $e->getMessage());
+
+                            Notification::make()
+                                ->danger()
+                                ->title('Trip Completion Failed')
+                                ->body("Error: " . $e->getMessage())
+                                ->persistent()
+                                ->send();
                         }
                     })
                     ->requiresConfirmation()
                     ->modalHeading('Complete Trip')
-                    ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records for each hotel and generate tickets.')
+                    ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records and set payment statuses.')
                     ->modalSubmitActionLabel('Yes, complete trip')
                     ->visible(fn (Trip $record) => $record->status === 'scheduled'),
-
-                
-                ])
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

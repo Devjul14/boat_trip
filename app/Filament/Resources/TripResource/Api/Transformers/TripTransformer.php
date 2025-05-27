@@ -17,11 +17,9 @@ class TripTransformer extends JsonResource
      * @return array
      */
     public function toArray($request)
-    {
-        $isBoatmanOwner = $this->resource->boatman_id === auth()->id();
-        
+    {       
         $data = $this->resource->toArray();
-        $data['boatman_id'] = $isBoatmanOwner;
+        $data['boatman_id'] = $this->resource->boatman_id;
         
         $data['trip_type'] = $this->resource->tripType;
         if (isset($data['trip_type']) && isset($data['trip_type']['image'])) {
@@ -31,6 +29,15 @@ class TripTransformer extends JsonResource
         $data['boatman'] = $this->resource->boatman;
         $data['tickets'] = $this->resource->ticket;
         
+        $invoices = $this->resource->invoices;
+        foreach ($invoices as $invoice) {
+            $hotel = $invoice->hotel;
+            $baseFileName = "{$hotel->name}" . date('YmdHis', strtotime($invoice->created_at));
+            $baseFileName = \Illuminate\Support\Str::slug($baseFileName);
+            $fileName = $baseFileName . '.pdf';
+            $invoice->inv_pdf = url('storage/pdf/' . $fileName);
+        }
+        $data['invoices'] = $invoices;
         return $data;
     }
 }

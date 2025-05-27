@@ -13,10 +13,7 @@ class InvoiceItems extends Model
     protected $fillable = [
         'invoice_id',
         'ticket_id',
-        'description',
-        'quantity',
-        'unit_price',
-        'total_amount',
+        'unit_amount',
     ];
 
     /**

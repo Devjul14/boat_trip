@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CancelTripController;
 use App\Http\Controllers\Api\SelfController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\TripController;
+use App\Http\Controllers\Api\InvoiceController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -31,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tickets/search', [TicketController::class, 'search']);
     Route::put('/admin/tickets/{id}/status-update', [TicketController::class, 'statusUpdate']);
     Route::get('/trips/search', [TripController::class, 'search']);
+    Route::post('/invoice/send/{invoiceId}', [InvoiceController::class, 'sendInvoice']);
+
 });
 
 

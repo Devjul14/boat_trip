@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Collection;
 use PDF;
 use Illuminate\Support\Str;
+use App\Services\InvoiceMailService;
 use Illuminate\Support\Facades\Storage;
 
 class InvoicesResource extends Resource
@@ -34,238 +35,7 @@ class InvoicesResource extends Resource
     public static function canCreate(): bool
     {
         return false;
-    }
-    
-    /**
-     * Generate PDF file for hotel invoices
-     *
-     * @param Hotel $hotel
-     * @param Collection $invoices
-     * @return string Path to the generated PDF file
-     */
-    protected static function generateInvoicePDF(Hotel $hotel, Collection $invoices): string
-{
-    try {
-        // Prepare data for PDF
-        $data = [
-            'hotel' => $hotel,
-            'invoices' => $invoices,
-            'totalAmount' => $invoices->sum('total_amount'),
-            'generatedDate' => now()->format('d-m-Y'),
-        ];
-
-        // Process invoices to include trip information
-        $invoicesData = [];
-        $expensesData = []; // Initialize expenses data array
-        $totalAmount = 0;
-        
-        foreach ($invoices as $invoice) {
-            // Get associated trip
-            $trip = Trip::find($invoice->trip_id);
-            if (!$trip) {
-                continue;
-            }
-            
-            // Load trip type
-            $trip->load('tripType');
-            
-            // Get passenger count for this trip and hotel
-            $passengerCount = $trip->ticket()
-                ->where('hotel_id', $hotel->id)
-                ->sum('number_of_passengers');
-            
-            // Calculate the amount
-            $amount = (float)$invoice->total_amount;
-            $totalAmount += $amount;
-            
-            // Add to invoices data array
-            $invoicesData[] = [
-                'invoice_number' => $invoice->invoice_number,
-                'trip_date' => $trip->date,
-                'trip_type' => $trip->tripType->name ?? 'N/A',
-                'passenger_count' => $passengerCount,
-                'month_year' => "{$invoice->month}/{$invoice->year}",
-                'amount' => $amount,
-                'due_date' => $invoice->due_date
-            ];
-            
-            // Get expenses for this trip that are associated with this hotel
-            $tickets = Ticket::where('trip_id', $trip->id)
-                ->where('hotel_id', $hotel->id)
-                ->pluck('id');
-                
-            // Get expenses for these tickets
-            $ticketExpenses = TicketExpense::with(['expense', 'ticket'])->whereIn('ticket_id', $tickets)->get();
-  
-            foreach ($ticketExpenses as $ticketExpense) {
-                // Get ticket and expense type information
-                $ticket = Ticket::find($ticketExpense->ticket_id);
-                
-                // Add to expenses data array - using stored values
-                $expensesData[] = [
-                    'trip_date' => $trip->date,
-                    'trip_type' => $trip->tripType->name ?? 'N/A',
-                    'expense_type' => $ticketExpense->expense->name,
-                    'passenger_count' => $ticket->number_of_passengers ?? 1,
-                    'amount' => $ticketExpense->amount,
-                    'notes' => $trip->notes
-                ];
-            }
-        }
-        
-        // Update data with processed invoice and expense information
-        $data['invoicesData'] = $invoicesData;
-        $data['expensesData'] = $expensesData; 
-        $data['totalAmount'] = $totalAmount;
-        
-        // Generate PDF using the invoice PDF template
-        $pdf = PDF::loadView('pdfs.invoice-summary', $data);
-        
-        // Set PDF options if needed
-        $pdf->setPaper('a4', 'portrait');
-        
-        // Prepare filename - ensure it's clean and has proper extension
-        $baseFileName = Str::slug("invoices_{$hotel->name}_" . date('Y-m-d_His'));
-        $fileName = $baseFileName . '.pdf';
-        
-        // Make sure the directory exists
-        $directory = storage_path('app/public/pdf');
-        if (!file_exists($directory)) {
-            mkdir($directory, 0755, true);
-        }
-        
-        // Full file path
-        $filePath = $directory . '/' . $fileName;
-        \Illuminate\Support\Facades\Log::info("PDF file path: {$filePath}");
-        
-        // Save the PDF file
-        $pdf->save($filePath);
-        
-        // Verify the file was created
-        if (!file_exists($filePath)) {
-            throw new \Exception("Failed to create PDF file at: {$filePath}");
-        }
-        
-        $fileSize = filesize($filePath);
-        \Illuminate\Support\Facades\Log::info("PDF file generated successfully: {$filePath} (Size: {$fileSize} bytes)");
-        
-        return $filePath;
-    } catch (\Exception $e) {
-        \Illuminate\Support\Facades\Log::error("Error generating PDF file: {$e->getMessage()}");
-        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
-        throw $e;
-    }
-}
-
-    /**
-     * Send invoice email to hotel contact person with PDF attachment
-     *
-     * @param Hotel $hotel
-     * @param Collection $invoices
-     * @return bool
-     */
-    protected static function sendInvoicePDFEmail(Hotel $hotel, Collection $invoices): bool
-    {
-        try {
-            // Generate PDF file
-            $pdfFilePath = self::generateInvoicePDF($hotel, $invoices);
-            
-            // Verify the file exists and is a PDF file
-            if (!file_exists($pdfFilePath)) {
-                throw new \Exception("PDF file does not exist: {$pdfFilePath}");
-            }
-            
-            // Check file size and type
-            $fileSize = filesize($pdfFilePath);
-            $fileInfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($fileInfo, $pdfFilePath);
-            finfo_close($fileInfo);
-            
-            \Illuminate\Support\Facades\Log::info("Attaching file: {$pdfFilePath} (Size: {$fileSize} bytes, Type: {$mimeType})");
-            
-            // Force the correct PDF MIME type
-            $pdfMimeType = 'application/pdf';
-            
-            // Prepare email data
-            $data = [
-                'hotel' => $hotel,
-                'invoiceCount' => $invoices->count(),
-                'totalAmount' => $invoices->sum('total_amount'),
-                'contactPerson' => $hotel->contact_person,
-                'month' => $invoices->first()->month,
-                'year' => $invoices->first()->year
-            ];
-            
-            \Illuminate\Support\Facades\Log::info("Sending email with PDF attachment to: {$hotel->email}");
-            
-            // Send email with attachment
-            Mail::send('emails.invoice-pdf', $data, function($message) use ($hotel, $pdfFilePath, $data, $pdfMimeType) {
-                $message->to($hotel->email, $hotel->contact_person)
-                        ->subject("Invoice Summary for {$data['month']} {$data['year']}");
-                
-                // Always use the correct PDF MIME type and ensure the .pdf extension
-                $fileName = basename($pdfFilePath);
-                if (!Str::endsWith($fileName, '.pdf')) {
-                    $fileName .= '.pdf';
-                }
-                
-                // Attach the PDF file with explicit mime type
-                $message->attach($pdfFilePath, [
-                    'as' => $fileName,
-                    'mime' => $pdfMimeType,
-                ]);
-            });
-            
-            // Update invoice statuses to 'sent'
-            foreach ($invoices as $invoice) {
-                $invoice->update(['status' => 'sent']);
-            }
-            
-            // Log successful email sending
-            \Illuminate\Support\Facades\Log::info("PDF invoice email sent successfully to {$hotel->email} with {$invoices->count()} invoices");
-            
-            return true;
-        } catch (\Exception $e) {
-            // Log the error but don't stop the process
-            \Illuminate\Support\Facades\Log::error("Failed to send invoice PDF email: {$e->getMessage()}");
-            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
-            return false;
-        }
-    }
-
-    /**
-     * Check if the current user is an admin
-     * 
-     * @return bool
-     */
-    protected static function isAdmin()
-    {
-        // Check if user has admin role
-        $user = Auth::user();
-        
-        // Log user information to help debug permission issues
-        if ($user) {
-            \Illuminate\Support\Facades\Log::info("User ID: {$user->id}, Name: {$user->name}");
-            if (method_exists($user, 'getRoleNames')) {
-                \Illuminate\Support\Facades\Log::info("User roles: " . implode(', ', $user->getRoleNames()->toArray()));
-            } else {
-                \Illuminate\Support\Facades\Log::info("User role attribute: " . ($user->role ?? 'none'));
-            }
-        } else {
-            \Illuminate\Support\Facades\Log::warning("No authenticated user found when checking admin status");
-        }
-        
-        // You may need to adjust this logic based on your role system
-        $isAdmin = $user && (
-            (method_exists($user, 'hasRole') && $user->hasRole('Admin')) || 
-            $user->role === 'Admin' || 
-            (property_exists($user, 'is_admin') && $user->is_admin)
-        );
-        
-        \Illuminate\Support\Facades\Log::info("Admin check result: " . ($isAdmin ? 'true' : 'false'));
-        
-        return $isAdmin;
-    }
+    }   
 
     public static function form(Form $form): Form
     {
@@ -405,20 +175,12 @@ class InvoicesResource extends Resource
                     ->label('Send Invoice')
                     ->icon('heroicon-o-envelope')
                     ->color('warning')
+                    ->visible(fn (Invoices $record) => optional($record->trip)->status === 'completed')
                     ->action(function (Invoices $record) {
-                        // Check if user is admin first
-                        if (!self::isAdmin()) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Permission Denied')
-                                ->body('Only administrators can send invoice emails.')
-                                ->persistent()
-                                ->send();
-                            return;
-                        }
-                        
+                        \Log::info("Send invoice action triggered for invoice ID: {$record->id}");
                         $hotel = Hotel::find($record->hotel_id);
                         if (!$hotel || !$hotel->email) {
+                            \Log::warning("Hotel not found or missing email for invoice ID: {$record->id}");
                             Notification::make()
                                 ->warning()
                                 ->title('Email Not Sent')
@@ -427,11 +189,10 @@ class InvoicesResource extends Resource
                                 ->send();
                             return;
                         }
-                        
-                        // Get the trip from the invoice
+
                         $trip = Trip::find($record->trip_id);
-                        
                         if (!$trip) {
+                            \Log::warning("Trip not found for invoice ID: {$record->id}");
                             Notification::make()
                                 ->warning()
                                 ->title('Email Not Sent')
@@ -441,28 +202,31 @@ class InvoicesResource extends Resource
                             return;
                         }
 
-                        // Check if any passengers on this trip have already paid in cash
                         $paidCashPassengers = $trip->ticket()
-                        ->where('payment_status', 'paid')
-                        ->where('payment_method', 'cash')
-                        ->count();
+                            ->where('payment_status', 'paid')
+                            ->where('payment_method', 'cash')
+                            ->count();
+                        \Log::info("Found {$paidCashPassengers} cash-paid passengers for trip ID: {$trip->id}");
 
                         if ($paidCashPassengers > 0) {
-                        Notification::make()
-                            ->warning()
-                            ->title('Payment Notification')
-                            ->body('This trip has already been paid in cash by some passengers.')
-                            ->persistent()
-                            ->send();
-                        return;
+                            \Log::warning("Trip has cash-paid passengers; aborting email.");
+                            Notification::make()
+                                ->warning()
+                                ->title('Payment Notification')
+                                ->body('This trip has already been paid in cash by some passengers.')
+                                ->persistent()
+                                ->send();
+                            return;
                         }
-                        
-                        // Create a collection with just this invoice
+
+                        \Log::info("Preparing to send invoice email to {$hotel->email} for invoice ID: {$record->id}");
+
                         $invoices = collect([$record]);
-                        
-                        // Send the email with PDF attachment
-                        $result = self::sendInvoicePDFEmail($hotel, $invoices);
-                        
+
+                        // Panggil service
+                        $mailService = app(InvoiceMailService::class);
+                        $result = $mailService->send($hotel, $invoices);
+
                         if ($result) {
                             Notification::make()
                                 ->success()
@@ -483,7 +247,6 @@ class InvoicesResource extends Resource
                     ->modalHeading('Send Invoice Email')
                     ->modalDescription('Are you sure you want to send an invoice email with PDF attachment to the hotel?')
                     ->modalSubmitActionLabel('Yes, send email')
-                    ->visible(fn (Invoices $record) => self::isAdmin() && $record->status === 'draft'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -493,16 +256,6 @@ class InvoicesResource extends Resource
                         ->icon('heroicon-o-document')
                         ->color('success')
                         ->action(function (Collection $records) {
-                            // Check if user is admin
-                            if (!self::isAdmin()) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Permission Denied')
-                                    ->body('Only administrators can send invoice emails.')
-                                    ->persistent()
-                                    ->send();
-                                return;
-                            }
                             
                             // Check if the PDF library is installed
                             if (!class_exists('Barryvdh\DomPDF\Facade\Pdf') && !class_exists('PDF')) {
@@ -580,8 +333,7 @@ class InvoicesResource extends Resource
                         ->modalHeading('Send PDF Invoice Emails')
                         ->modalDescription('This will group invoices by hotel and send PDF attachments with all invoices for each hotel.')
                         ->modalSubmitActionLabel('Yes, send PDF invoices')
-                        ->deselectRecordsAfterCompletion()
-                        ->visible(fn () => self::isAdmin()),
+                        ->deselectRecordsAfterCompletion(),
                     
                     Tables\Actions\BulkAction::make('mark_as_paid')
                         ->label('Mark as Paid')

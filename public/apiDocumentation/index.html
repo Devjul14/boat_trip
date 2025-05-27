@@ -113,8 +113,6 @@
   "boat_id": 5,
   "remarks": "testing boatman create trip",
   "status": "scheduled",
-  "petrol_consumed": "2.00",
-  "petrol_filled": "6.00"
 }
 </code></pre>
 
@@ -138,9 +136,7 @@
   "trip_type_id": 1,
   "boat_id": 5,
   "remarks": "test request on postman update",
-  "status": "scheduled",
-  "petrol_consumed": "36.00",
-  "petrol_filled": "26.00"
+  "status": "scheduled"
 }
 </code></pre>
 
@@ -372,6 +368,37 @@
     <p><strong>Response:</strong><br />
         - <code>200 OK</code> - Returns invoice object.<br />
         - <code>404 Not Found</code> - Invoice not found.</p>
+
+    <hr />
+
+    <h3>Send Invoice</h3>
+    <p>
+        <strong>Endpoint:</strong><br />
+        <code>POST https://nouncity.com/api/invoice/send/{invoice_id}</code>
+    </p>
+
+    <p>
+        <strong>Description:</strong><br />
+        Sends an invoice email with a PDF attachment to the associated hotel.
+        The trip must be marked as <code>completed</code>, and there must be no passengers who paid by cash.
+    </p>
+
+    <p>
+        <strong>Path Parameters:</strong><br />
+    <ul>
+        <li><code>invoice_id</code> (integer) – ID of the invoice to be sent.</li>
+    </ul>
+    </p>
+
+    <p>
+        <strong>Responses:</strong><br />
+    <ul>
+        <li><code>200 OK</code> – Invoice email sent successfully.</li>
+        <li><code>400 Bad Request</code> – Trip is not completed, has cash-paid passengers, or hotel email is missing.
+        </li>
+        <li><code>404 Not Found</code> – Invoice or hotel not found.</li>
+    </ul>
+    </p>
 
     <hr />
 

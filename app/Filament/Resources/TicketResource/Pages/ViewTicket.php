@@ -61,6 +61,23 @@ class ViewTicket extends ViewRecord
                         ->getStateUsing(fn ($record) => $record->hotel_id === null ? 'Walk in Trip' : $record->hotel->name),
                     TextEntry::make('number_of_passengers')
                         ->label('Total Passengers'),
+                    TextEntry::make('payment_status')
+                        ->label('Payment Status')
+                        ->badge()
+                        ->color(fn (string $state): string => match ($state) {
+                            'pending' => 'warning',
+                            'paid' => 'success',
+                            default => 'gray',
+                        }),
+                    TextEntry::make('payment_method')
+                        ->label('Payment Method')
+                        ->badge()
+                        ->color(fn (string $state): string => match ($state) {
+                            'cash' => 'success',
+                            'bank_transfer' => 'success',
+                            'credit_card' => 'success',
+                            default => 'gray',
+                        }),
                     TextEntry::make('created_at')
                         ->dateTime()
                         ->label('Created At'),
