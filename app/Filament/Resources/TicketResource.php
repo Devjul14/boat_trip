@@ -198,9 +198,18 @@ class TicketResource extends Resource
     public static function api(): array
     {
         return [
-            // handler lainnya (misal: CreateHandler, UpdateHandler)
             SearchHandler::class,
         ];
+    }
+
+    public static function eagerLoadForIndex(): array
+    {
+        return ['ticketExpenses.expense', 'hotel'];
+    }
+
+    public static function eagerLoadForDetail(): array
+    {
+        return ['ticketExpenses.expense', 'hotel'];
     }
 
 }

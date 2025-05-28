@@ -1,22 +1,14 @@
-<?php
+<?php 
 namespace App\Filament\Resources\TicketResource\Api\Transformers;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Models\Ticket;
-use App\Models\Hotel;
 
 /**
  * @property Ticket $resource
  */
-class TicketTransformer extends JsonResource
+class TicketDetailTransformer extends JsonResource
 {
-
-    /**
-     * Transform the resource into an array.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array
-     */
     public function toArray($request)
     {
         return [
@@ -48,7 +40,5 @@ class TicketTransformer extends JsonResource
             
             }),            
         ];
-
-       
     }
 }

@@ -22,7 +22,7 @@ class InvoicesTransformer extends JsonResource
 
     // Related hotel
     $hotel = $this->resource->hotel;
-    $baseFileName = "invoices_{$hotel->name}_" . date('Y-m-d_His', strtotime($this->resource->created_at));
+    $baseFileName = "{$hotel->name}" . date('YmdHis', strtotime($this->resource->created_at));
     $baseFileName = \Illuminate\Support\Str::slug($baseFileName);
     $fileName = $baseFileName . '.pdf';
 

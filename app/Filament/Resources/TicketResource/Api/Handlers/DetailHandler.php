@@ -7,7 +7,7 @@ use App\Filament\Resources\TicketResource;
 use Rupadana\ApiService\Http\Handlers;
 use Spatie\QueryBuilder\QueryBuilder;
 use Illuminate\Http\Request;
-use App\Filament\Resources\TicketResource\Api\Transformers\TicketTransformer;
+use App\Filament\Resources\TicketResource\Api\Transformers\TicketDetailTransformer;
 
 class DetailHandler extends Handlers
 {
@@ -19,7 +19,7 @@ class DetailHandler extends Handlers
      * Show Ticket
      *
      * @param Request $request
-     * @return TicketTransformer
+     * @return TicketDetailTransformer
      */
     public function handler(Request $request)
     {
@@ -34,6 +34,6 @@ class DetailHandler extends Handlers
 
         if (!$query) return static::sendNotFoundResponse();
 
-        return new TicketTransformer($query);
+        return new TicketDetailTransformer($query);
     }
 }
