@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Api\CompletedTripController;
 use App\Http\Controllers\Api\CancelTripController;
 use App\Http\Controllers\Api\SelfController;
@@ -22,6 +23,10 @@ use App\Http\Controllers\Api\InvoiceController;
 
 Route::post('/login', [LoginController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [LoginController::class, 'logout']);
+Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->name('password.email');
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+
 
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -33,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/tickets/{id}/status-update', [TicketController::class, 'statusUpdate']);
     Route::get('/trips/search', [TripController::class, 'search']);
     Route::post('/invoice/send/{invoiceId}', [InvoiceController::class, 'sendInvoice']);
+    Route::post('/password-change', [PasswordResetController::class, 'changePassword']);
 
 });
 

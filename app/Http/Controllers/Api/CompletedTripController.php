@@ -3,106 +3,47 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Trip, Ticket, TicketExpense, Hotel, Invoices, InvoiceItems};
+use App\Models\Trip;
+use App\Services\TripCompletionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{Log, DB};
-use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CompletedTripController extends Controller
 {
+    protected $tripCompletionService;
+
+    public function __construct(TripCompletionService $tripCompletionService)
+    {
+        $this->tripCompletionService = $tripCompletionService;
+    }
+
     public function completeTrip(Request $request, $id)
     {
+        Log::info("API: Starting completion for trip ID: {$id}");
+
         try {
-            Log::info("API: Completing trip ID: {$id}");
             $trip = Trip::findOrFail($id);
 
-            if ($trip->status === 'completed') {
-                return response()->json(['success' => false, 'message' => 'Trip is already completed'], 400);
-            }
+            $result = $this->tripCompletionService->complete($trip);
 
-            if ($trip->status !== 'scheduled') {
-                return response()->json(['success' => false, 'message' => 'Only scheduled trips can be completed'], 400);
-            }
-
-            DB::beginTransaction();
-            $trip->update(['status' => 'completed']);
-
-            $tickets = $trip->ticket()->get();
-            $ticketIds = $tickets->pluck('id');
-            Ticket::whereIn('id', $ticketIds)->update(['payment_status' => 'unpaid']);
-
-            $totalExpenseAmount = TicketExpense::whereIn('ticket_id', $ticketIds)->sum('amount');
-            $ticketsByHotel = $tickets->groupBy('hotel_id');
-            $issueDate = $trip->date->format('Y-m-d');
-            $dueDate = now()->addDays(7)->format('Y-m-d');
-
-            $invoiceCount = 0;
-            $resultInvoices = [];
-            $pdfFiles = [];
-
-            foreach ($ticketsByHotel as $hotelId => $hotelTickets) {
-                if (!$hotelId) continue;
-
-                $hotel = Hotel::find($hotelId);
-                $hotelName = $hotel->name ?? 'Walk In Trip';
-                $totalPassengers = $hotelTickets->sum('number_of_passengers');
-                if ($totalPassengers === 0) continue;
-
-                $totalInvoiceAmount = $totalExpenseAmount * $totalPassengers;
-                $lastNumber = (int) (Invoices::latest()->first()?->invoice_number ? substr(Invoices::latest()->first()->invoice_number, 8, 3) : 0);
-                $invoiceNumber = 'AK/' . date('Y') . '/' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-
-                $invoice = Invoices::create([
-                    'invoice_number' => $invoiceNumber,
-                    'hotel_id' => $hotelId,
-                    'trip_id' => $trip->id,
-                    'month' => date('F'),
-                    'year' => date('Y'),
-                    'issue_date' => $issueDate,
-                    'due_date' => $dueDate,
-                    'total_amount' => $totalInvoiceAmount,
-                    'status' => 'draft',
-                ]);
-
-                foreach ($hotelTickets as $ticket) {
-                    InvoiceItems::create([
-                        'invoice_id' => $invoice->id,
-                        'ticket_id' => $ticket->id,
-                        'unit_amount' => $totalExpenseAmount,
-                    ]);
-                }
-
-                $invoiceCount++;
-                $resultInvoices[] = [
-                    'invoice_number' => $invoiceNumber,
-                    'hotel_name' => $hotelName,
-                    'total_passengers' => $totalPassengers,
-                    'total_amount' => $totalInvoiceAmount,
-                ];
-
-                $invoicesForHotel = Invoices::where('hotel_id', $hotelId)->where('trip_id', $trip->id)->get();
-                $pdfPath = self::generateInvoicePDF($hotel, $invoicesForHotel);
-                $pdfFiles[] = ['hotel_name' => $hotelName, 'pdf_path' => $pdfPath];
-            }
-
-            DB::commit();
+            Log::info("API: Trip ID {$id} completed successfully");
 
             return response()->json([
                 'success' => true,
-                'message' => "Trip completed. Generated {$invoiceCount} invoice(s).",
+                'message' => "Trip completed. Generated {$result['invoice_count']} invoice(s).",
                 'data' => [
-                    'trip_id' => $trip->id,
-                    'date' => $trip->date->format('Y-m-d'),
-                    'invoices' => $resultInvoices,
-                    'pdf_files' => $pdfFiles
+                    'trip_id' => $result['trip_id'],
+                    'date' => $result['date'],
+                    'invoices' => $result['invoices']
                 ]
             ]);
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Error completing trip {$id}: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Failed to complete trip: ' . $e->getMessage()], 500);
+            Log::error("API: Error completing trip {$id}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete trip: ' . $e->getMessage()
+            ], 500);
         }
     }
 

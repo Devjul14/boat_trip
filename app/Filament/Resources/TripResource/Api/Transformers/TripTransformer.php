@@ -32,10 +32,7 @@ class TripTransformer extends JsonResource
         $invoices = $this->resource->invoices;
         foreach ($invoices as $invoice) {
             $hotel = $invoice->hotel;
-            $baseFileName = "{$hotel->name}" . date('YmdHis', strtotime($invoice->created_at));
-            $baseFileName = \Illuminate\Support\Str::slug($baseFileName);
-            $fileName = $baseFileName . '.pdf';
-            $invoice->inv_pdf = url('storage/pdf/' . $fileName);
+            $invoice->inv_pdf = route('invoices.view', ['invoice' => $invoice->id]);
         }
         $data['invoices'] = $invoices;
         return $data;

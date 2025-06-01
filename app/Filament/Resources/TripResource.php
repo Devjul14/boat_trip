@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use App\Services\TripCompletionService;
 use App\Filament\Resources\TripResource\Pages;
 use App\Filament\Resources\TripResource\RelationManagers;
 use App\Models\Trip;
 use App\Models\Hotel;
+use App\Models\Invoices;
+use App\Models\Ticket;
+use App\Models\TicketExpense;
 use App\Models\TripType;
 use App\Models\Boat;
 use App\Models\User;
-use App\Models\Ticket;
-use App\Models\TicketExpense;
-use App\Models\Invoices;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Repeater;
 use Illuminate\Support\Facades\DB;
+
 
 class TripResource extends Resource
 {
@@ -110,6 +112,14 @@ class TripResource extends Resource
                         'warning' => 'scheduled',
                         'success' => 'completed',
                     ]),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('trip_type_id')
@@ -159,102 +169,20 @@ class TripResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->action(function (Trip $record) {
-                        if ($record->status !== 'scheduled') {
-                            \Log::warning("Attempted to complete trip {$record->id} but it's not in 'scheduled' status");
-                            return;
-                        }
-
-                        \DB::beginTransaction();
                         try {
-                            \Log::info("Starting trip completion process for trip ID: {$record->id}");
-
-                            // Update trip status
-                            $record->update(['status' => 'completed']);
-                            \Log::info("Trip status updated to 'completed'");
-
-                            $tickets = $record->ticket()->get();
-                            $ticketIds = $tickets->pluck('id');
-
-                            // Update payment_status to 'unpaid'
-                            Ticket::whereIn('id', $ticketIds)->update(['payment_status' => 'unpaid']);
-                            \Log::info("Updated payment_status to 'unpaid' for " . count($ticketIds) . " tickets");
-
-                            $ticketExpenses = TicketExpense::whereIn('ticket_id', $ticketIds)->get();
-                            $totalExpenseAmount = $ticketExpenses->sum('amount');
-
-                            $ticketsByHotel = $tickets->groupBy('hotel_id');
-                            $issueDate = $record->date;
-                            $dueDate = date('Y-m-d', strtotime($issueDate . ' + 7 days'));
-
-                            $invoiceCount = 0;
-                            $invoiceItemsCount = 0;
-
-                            foreach ($ticketsByHotel as $hotelId => $hotelTickets) {
-                                if (!$hotelId) {
-                                    \Log::info("Skipping tickets with null hotel ID");
-                                    continue;
-                                }
-
-                                $hotel = Hotel::find($hotelId);
-                                $hotelName = $hotel?->name ?? 'Walk In Trip';
-
-                                $totalPassengers = $hotelTickets->sum('number_of_passengers');
-                                if ($totalPassengers === 0) {
-                                    \Log::warning("Total passengers is 0 for hotel ID: {$hotelId}");
-                                    continue;
-                                }
-
-                                $totalInvoiceAmount = $totalExpenseAmount * $totalPassengers;
-                                $unitAmount = $totalExpenseAmount; // per orang
-
-                                // Generate invoice number
-                                $lastInvoice = Invoices::orderBy('id', 'desc')->first();
-                                $lastNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 8, 3)) : 0;
-                                $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-                                $invoiceNumber = 'AK/' . date('Y') . '/' . $newNumber;
-
-                                // Create invoice
-                                $invoice = Invoices::create([
-                                    'invoice_number' => $invoiceNumber,
-                                    'hotel_id' => $hotelId,
-                                    'trip_id' => $record->id,
-                                    'month' => date('F'),
-                                    'year' => date('Y'),
-                                    'issue_date' => $issueDate,
-                                    'due_date' => $dueDate,
-                                    'total_amount' => $totalInvoiceAmount,
-                                    'status' => 'draft',
-                                ]);
-
-                                \Log::info("Created invoice ID: {$invoice->id} for hotel ID: {$hotelId} ({$hotelName})");
-
-                                // Create invoice_items
-                                foreach ($hotelTickets as $ticket) {
-                                    InvoiceItems::create([
-                                        'invoice_id' => $invoice->id,
-                                        'ticket_id' => $ticket->id,
-                                        'unit_amount' => $unitAmount,
-                                    ]);
-                                    $invoiceItemsCount++;
-                                    \Log::info("Created invoice_item for ticket {$ticket->id} with unit_amount {$unitAmount}");
-                                }
-
-                                $invoiceCount++;
-                            }
-
-                            \DB::commit();
+                            $service = new TripCompletionService();
+                            $result = $service->complete($record);
 
                             Notification::make()
                                 ->success()
                                 ->title('Trip Completed Successfully')
-                                ->body("Trip marked as completed. {$invoiceCount} invoice(s) and {$invoiceItemsCount} invoice item(s) created.")
+                                ->body("Trip marked as completed. {$result['invoice_count']} invoice(s) created.")
                                 ->persistent()
                                 ->send();
 
-                            \Log::info("Trip completion success for trip ID {$record->id}: {$invoiceCount} invoice(s), {$invoiceItemsCount} invoice_item(s)");
+                            \Log::info("Trip ID {$result['trip_id']} completed on {$result['date']}. Total invoices: {$result['invoice_count']}");
 
                         } catch (\Exception $e) {
-                            \DB::rollBack();
                             \Log::error("Trip completion FAILED for trip ID {$record->id}: " . $e->getMessage());
 
                             Notification::make()
@@ -269,8 +197,8 @@ class TripResource extends Resource
                     ->modalHeading('Complete Trip')
                     ->modalDescription('Are you sure you want to mark this trip as completed? This will create invoice records and set payment statuses.')
                     ->modalSubmitActionLabel('Yes, complete trip')
-                    ->visible(fn (Trip $record) => $record->status === 'scheduled'),
-            ])
+                    ->visible(fn (Trip $record) => $record->status === 'scheduled')
+                ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

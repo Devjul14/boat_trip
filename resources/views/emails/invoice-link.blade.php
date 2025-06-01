@@ -80,7 +80,8 @@
             <p>Please find attached the invoice summary for {{ $hotel->name }} for the period of {{ $month }}/{{ $year }}.</p>
             
             <p>This summary includes a total of {{ $invoiceCount }} invoice(s) with a total amount of <span class="amount">${{ number_format($totalAmount, 2) }}</span>.</p>
-            
+            <p>You can view the invoice using the link below:</p>
+            <p><a href="{{ $viewLink }}" class="btn" target="_blank">View Invoice</a></p>
             <p>Payment is due upon receipt. If you have any questions regarding this invoice or need further clarification, please don't hesitate to contact our accounting department.</p>
             
             <p>Thank you for your business!</p>

@@ -3,76 +3,60 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\ViewErrorBag;
 
-class LoginController extends Controller
+class PasswordResetController extends Controller
 {
-    public function login(Request $request)
+    public function showResetForm(Request $request, $token)
     {
-        $request->validate([
-            'phone' => 'required|string',
-            'password' => 'required',
-        ]);
-
-        $user = User::where('phone', $request->phone)->first();
-
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'phone' => ['The provided credentials are incorrect.'],
-            ]);
-        }
-
-        return response()->json([
-            'token' => $user->createToken($request->phone)->plainTextToken,
-            'user' => $user
+        return view('auth.reset-with-old', [
+            'token' => $token,
+            'email' => $request->query('email'),
+            'errors' => session()->get('errors', new ViewErrorBag), // Pastikan $errors tersedia
         ]);
     }
-
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-        
-        return response()->json(['message' => 'Logged out successfully']);
-    }
-
+    /**
+     * Handle forgot password: send reset link to email
+     */
     public function forgot(Request $request)
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
         ]);
 
-        Log::info('Password reset requested for: ' . $request->email);
+        Log::info('Request to send reset link: ' . $request->email);
 
         $status = Password::sendResetLink(
             $request->only('email')
         );
 
-        Log::info('Password reset status: ' . $status);
+        Log::info('Reset link send status: ' . $status);
 
         return $status === Password::RESET_LINK_SENT
             ? response()->json(['message' => 'Reset link sent to your email.'], 200)
             : response()->json(['message' => 'Unable to send reset link.'], 500);
     }
 
+    /**
+     * Handle reset password using token
+     */
     public function reset(Request $request)
     {
         $request->validate([
             'email'    => 'required|email|exists:users,email',
-            'token'    => 'required',
             'password' => 'required|confirmed|min:8',
         ]);
 
-        Log::info('Reset attempt for: ' . $request->email);
-        Log::debug('Reset data', $request->only(['email', 'token']));
+        Log::info('Attempting password reset for: ' . $request->email);
 
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            $request->only('email', 'password', 'password_confirmation'),
             function ($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
@@ -80,16 +64,35 @@ class LoginController extends Controller
                 ])->save();
 
                 event(new PasswordReset($user));
+
                 Log::info('Password reset successful for user: ' . $user->email);
             }
         );
 
-        Log::info('Final password reset status: ' . $status);
+        Log::info('Final reset status: ' . $status);
 
         return $status === Password::PASSWORD_RESET
             ? response()->json(['message' => 'Password has been reset.'], 200)
             : response()->json(['message' => 'Failed to reset password.'], 400);
     }
 
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required',
+            'password' => 'required|confirmed|min:8',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json(['message' => 'Old password is incorrect'], 403);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json(['message' => 'Password successfully changed.'], 200);
+    }
 
 }

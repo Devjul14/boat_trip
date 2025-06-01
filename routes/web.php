@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Hotel;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\InvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,13 +19,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/download-pdf/{filename}', function ($filename) {
-    $path = storage_path("app/public/pdf/{$filename}");
-
-    if (!file_exists($path)) {
-        abort(404);
-    }
-
-    return response()->file($path); // Untuk open
-});
-
+Route::get('/invoices/view/{invoice}', [InvoiceController::class, 'viewInvoiceSummary'])->name('invoices.view');

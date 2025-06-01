@@ -34,6 +34,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // ->registration()
+            ->passwordReset()
+            ->emailVerification()
+            ->profile()
             ->brandName('Boat Trip')
             ->colors([
                 'primary' => Color::Amber,

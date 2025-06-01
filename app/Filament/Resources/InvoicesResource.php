@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+
 use App\Filament\Resources\InvoicesResource\Pages;
 use App\Filament\Resources\InvoicesResource\RelationManagers;
 use App\Models\TicketExpense;
@@ -128,8 +129,8 @@ class InvoicesResource extends Resource
                     ->colors([
                         'danger' => 'cancelled',
                         'warning' => ['draft', 'overdue'],
-                        'success' => 'paid',
-                        'primary' => 'sent',
+                        'primary' => 'paid',
+                        'success' => 'sent',
                     ]),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -170,14 +171,18 @@ class InvoicesResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('send_invoice_pdf')
                     ->label('Send Invoice')
                     ->icon('heroicon-o-envelope')
                     ->color('warning')
-                    ->visible(fn (Invoices $record) => optional($record->trip)->status === 'completed')
+                    ->visible(function (Invoices $record) {
+                        return $record->status === 'draft' && optional($record->trip)->status === 'completed';
+                    })
                     ->action(function (Invoices $record) {
                         \Log::info("Send invoice action triggered for invoice ID: {$record->id}");
+
                         $hotel = Hotel::find($record->hotel_id);
                         if (!$hotel || !$hotel->email) {
                             \Log::warning("Hotel not found or missing email for invoice ID: {$record->id}");
@@ -206,6 +211,7 @@ class InvoicesResource extends Resource
                             ->where('payment_status', 'paid')
                             ->where('payment_method', 'cash')
                             ->count();
+
                         \Log::info("Found {$paidCashPassengers} cash-paid passengers for trip ID: {$trip->id}");
 
                         if ($paidCashPassengers > 0) {
@@ -221,17 +227,15 @@ class InvoicesResource extends Resource
 
                         \Log::info("Preparing to send invoice email to {$hotel->email} for invoice ID: {$record->id}");
 
-                        $invoices = collect([$record]);
-
                         // Panggil service
                         $mailService = app(InvoiceMailService::class);
-                        $result = $mailService->send($hotel, $invoices);
+                        $result = $mailService->send($hotel, collect([$record]));
 
                         if ($result) {
                             Notification::make()
                                 ->success()
                                 ->title('Invoice Email Sent')
-                                ->body("Email with PDF attachment sent successfully to {$hotel->email}")
+                                ->body("Email sent successfully to {$hotel->email}")
                                 ->persistent()
                                 ->send();
                         } else {
@@ -245,9 +249,11 @@ class InvoicesResource extends Resource
                     })
                     ->requiresConfirmation()
                     ->modalHeading('Send Invoice Email')
-                    ->modalDescription('Are you sure you want to send an invoice email with PDF attachment to the hotel?')
+                    ->modalDescription('Are you sure you want to send an invoice email with a view link to the hotel?')
                     ->modalSubmitActionLabel('Yes, send email')
-            ])
+
+                ])
+           
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -376,6 +382,7 @@ class InvoicesResource extends Resource
         return [
             'index' => Pages\ListInvoices::route('/'),
             'create' => Pages\CreateInvoices::route('/create'),
+            'view' => Pages\ViewInvoice::route('/{record}'),
             'edit' => Pages\EditInvoices::route('/{record}/edit'),
         ];
     }
